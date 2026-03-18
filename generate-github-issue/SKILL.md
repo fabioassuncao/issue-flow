@@ -2,12 +2,14 @@
 name: generate-github-issue
 description: >
   Generates detailed, architect-quality GitHub issues from short instructions. Analyzes the project's
-  actual stack, architecture, and codebase before writing. Detects duplicate issues, applies labels
-  automatically, and publishes via `gh` CLI. Use this skill whenever the user wants to create a GitHub
-  issue, report a bug, propose a feature, request a refactor, or file any kind of technical issue —
-  even if they just say something brief like "we need to fix the auth flow" or "create an issue for X".
-  Also triggers on: "open an issue", "file a bug", "I want to propose...", "add this to the backlog",
-  "gh issue", or any request that implies creating a trackable work item on GitHub.
+  actual stack, architecture, and codebase before writing. Detects duplicate issues with intelligent
+  multi-strategy search, validates and creates labels, enforces title conventions, controls scope,
+  and publishes via `gh` CLI with robust error handling. Use this skill whenever the user wants to
+  create a GitHub issue, report a bug, propose a feature, request a refactor, or file any kind of
+  technical issue — even if they just say something brief like "we need to fix the auth flow" or
+  "create an issue for X". Also triggers on: "open an issue", "file a bug", "I want to propose...",
+  "add this to the backlog", "gh issue", or any request that implies creating a trackable work item
+  on GitHub.
 ---
 
 # Generate GitHub Issue
@@ -20,6 +22,8 @@ You are an experienced software architect tasked with turning a short instructio
 - **Depth over speed.** A shallow issue wastes more time than it saves. Analyze thoroughly, write clearly.
 - **No duplicates.** Always check existing issues before creating. When in doubt, ask the user.
 - **Minimal output.** Return only the issue URL (or a decision message). No logs, no issue body echo, no explanations.
+- **Scope discipline.** One issue = one actionable unit of work. If it can't be done in a single PR, it's too big.
+- **Consistency.** Titles, labels, and language follow strict conventions.
 
 ---
 
@@ -27,11 +31,30 @@ You are an experienced software architect tasked with turning a short instructio
 
 Follow these steps in order. Do not skip any.
 
+### Step 0 — Validate Environment
+
+Before anything else, confirm that the `gh` CLI is available and authenticated:
+
+```bash
+gh auth status 2>&1
+```
+
+**If `gh` is not installed**: Stop and tell the user:
+> `gh` CLI is not installed. Install it from https://cli.github.com/ and run `gh auth login`.
+
+**If not authenticated**: Stop and tell the user:
+> You are not authenticated with GitHub. Run `gh auth login` to authenticate.
+
+**If authenticated but no repo context** (not inside a git repo or no remote configured): Stop and tell the user:
+> This directory is not linked to a GitHub repository. Make sure you are inside a git repo with a GitHub remote.
+
+Only proceed once the environment is confirmed working.
+
 ### Step 1 — Discover the Project
 
 Before forming any opinion, scan the repository to understand what you're working with. Look for:
 
-- **Languages**: Check file extensions, `package.json`, `composer.json`, `Cargo.toml`, `go.mod`, `requirements.txt`, `Gemfile`, etc.
+- **Languages**: Check file extensions, `package.json`, `composer.json`, `Cargo.toml`, `go.mod`, `requirements.txt`, `Gemfile`, `mix.exs`, `build.gradle`, `pom.xml`, etc.
 - **Frameworks**: Look at dependencies, directory structure, config files (e.g., `artisan` = Laravel, `next.config` = Next.js, `manage.py` = Django).
 - **Architecture**: Monorepo? Microservices? MVC? Module-based? Check top-level directories.
 - **Build tools**: Vite, Webpack, esbuild, Make, Docker, etc.
@@ -42,7 +65,29 @@ Use Glob, Grep, and Read tools to gather real evidence. A few targeted searches 
 
 If the project has a CLAUDE.md, README, or similar docs, read them for architectural context.
 
-### Step 2 — Analyze the Request
+### Step 2 — Detect Project Language
+
+Determine the **dominant human language** used in the project for issue writing:
+
+1. Check the last 10 issue titles (if any exist):
+   ```bash
+   gh issue list --limit 10 --state all --json title --jq '.[].title' 2>/dev/null
+   ```
+2. Check the README language if available.
+3. Check commit messages:
+   ```bash
+   git log --oneline -10 2>/dev/null
+   ```
+
+**Language decision rules** (in order of priority):
+1. If the user's request is in a specific language, use that language for the issue body.
+2. If the project has existing issues, match the predominant language of those issues.
+3. If no existing issues, match the README language.
+4. Fallback: use the language the user wrote their request in.
+
+Store the chosen language — it will be used for the title, body, and all content.
+
+### Step 3 — Analyze the Request
 
 Take the user's short instruction and expand it technically:
 
@@ -54,7 +99,45 @@ Take the user's short instruction and expand it technically:
 
 Think like an architect who knows this codebase. The goal is to produce an issue that someone (human or AI agent) can pick up and execute without needing to ask clarifying questions.
 
-### Step 3 — Write the Issue
+#### Infer Issue Metadata
+
+From the request and codebase analysis, infer:
+
+- **Type**: `bug`, `enhancement`, `refactor`, `investigation`, or `architecture`
+- **Priority**: `low`, `medium`, or `high` — based on:
+  - `high`: security issues, data loss risks, broken core functionality, production outages
+  - `medium`: degraded functionality, performance issues, developer experience problems
+  - `low`: cosmetic issues, minor improvements, nice-to-haves
+- **Area**: `backend`, `frontend`, `infra`, `database`, `api`, `auth`, `storage`, `i18n`, `integrations`, `docs`, `testing`, `ci-cd`, `monitoring` (pick all that apply, max 2)
+
+These will inform the title prefix, labels, and issue structure.
+
+### Step 4 — Scope Control
+
+Before writing, evaluate whether the request is too broad for a single issue.
+
+**An issue is too broad if:**
+- It touches 3+ unrelated areas of the codebase
+- It requires multiple independent PRs that could be reviewed separately
+- It contains both architectural decisions AND implementation work
+- The execution plan would have 8+ steps with no logical grouping
+
+**If the scope is too broad:**
+1. Identify the logical sub-issues (2-4 pieces).
+2. Ask the user:
+   > This request covers multiple independent concerns. I recommend splitting into separate issues:
+   > 1. [Brief description of issue 1]
+   > 2. [Brief description of issue 2]
+   > 3. [Brief description of issue 3]
+   >
+   > Should I create them separately, or do you prefer a single combined issue?
+
+3. Wait for the user's response before proceeding.
+4. If creating multiple issues, each one follows this full workflow independently. Add cross-references between them using `#number` after creation.
+
+**If the scope is appropriate**: Proceed to writing.
+
+### Step 5 — Write the Issue
 
 Use this exact structure. Every section must be present and substantive — no placeholders or one-liners.
 
@@ -119,66 +202,185 @@ Use this exact structure. Every section must be present and substantive — no p
 [Links to related issues, PRs, or external references. Use `#number` for cross-references. If none, say "Nenhuma."]
 ```
 
-**Language**: Write the issue body in the same language the user used in their request. If the user wrote in Portuguese, write in Portuguese. If in English, write in English.
+**Section headers language**: The section headers above are templates. Translate them to match the chosen issue language from Step 2. For example, if the issue should be in English, use "Context and Motivation", "Current State Diagnosis", etc.
 
 **Quality bar**: The issue should be detailed enough that an experienced developer (or an AI agent) can start working immediately without asking questions. Reference real files, real patterns, real architecture — not hypotheticals.
 
-### Step 4 — Check for Duplicates
+**File references**: Whenever mentioning a file, use the relative path from the repository root (e.g., `src/auth/middleware.ts`). Verify the file actually exists before referencing it.
 
-Before creating, search existing issues:
+### Step 6 — Check for Duplicates
+
+This is a **multi-strategy search**. Do NOT rely on a single query.
+
+#### Strategy 1 — Keyword Search
+
+Extract 3-5 keywords from the issue title and core problem. Run targeted searches:
 
 ```bash
-gh issue list --limit 100 --state all
+gh issue list --search "<keyword1> <keyword2>" --state all --limit 30 --json number,title,state,url,labels 2>&1
 ```
 
-Evaluate each result for:
-- Title similarity (even with different wording)
-- Overlapping problem description
-- Equivalent intent
+Run 2-3 different keyword combinations to catch issues worded differently.
 
-**If highly similar issue exists**: Do NOT create a new one. Instead, comment on the existing issue with any new context or analysis from your work. Tell the user what you did.
+#### Strategy 2 — Area Search
+
+If the issue affects a specific area (auth, database, API, etc.), search for that area:
+
+```bash
+gh issue list --search "<area-term>" --state all --limit 30 --json number,title,state,url,labels 2>&1
+```
+
+#### Strategy 3 — Label Search (if applicable)
+
+If the issue maps to common labels, search by label:
+
+```bash
+gh issue list --label "<relevant-label>" --state all --limit 20 --json number,title,state,url 2>&1
+```
+
+#### Similarity Evaluation
+
+For each candidate found, evaluate on three dimensions:
+
+| Dimension | Question | Weight |
+|-----------|----------|--------|
+| **Intent** | Do both issues aim to solve the same underlying problem? | High |
+| **Domain** | Do they affect the same area/module of the codebase? | Medium |
+| **Approach** | Do they propose similar solutions? | Low |
+
+**Scoring:**
+- **High similarity** (intent + domain match): Treat as duplicate.
+- **Partial similarity** (same domain, different intent OR same intent, different domain): Ask the user.
+- **Low similarity** (only superficial textual overlap): Not a duplicate — proceed.
+
+**If highly similar issue exists (open)**: Do NOT create a new one. Instead:
+1. Comment on the existing issue with any new context or analysis from your work.
+2. Include a summary of what new information you're adding.
+3. Tell the user what you did and provide the existing issue URL.
+
+**If highly similar issue exists (closed)**: Ask the user:
+> A similar issue was previously addressed and closed: #[number] — [title].
+> Should I reopen it, create a new issue referencing it, or skip?
 
 **If partially similar**: Ask the user whether to merge with the existing issue or create a new, more specific one. Do not decide unilaterally.
 
-**If no duplicates**: Proceed to creation.
+**If no duplicates found across all strategies**: Proceed to creation.
 
-### Step 5 — Determine Labels
+### Step 7 — Validate and Prepare Labels
 
-Infer appropriate labels from the issue content. Use these categories:
-
-| Category | Values |
-|----------|--------|
-| Type | `bug`, `enhancement`, `refactor`, `investigation`, `architecture` |
-| Priority | `low`, `medium`, `high` |
-| Area | `backend`, `frontend`, `infra`, `database`, `api`, `auth`, `storage`, `i18n`, `integrations` |
-
-Pick 2-4 labels that best describe the issue. Don't over-label.
-
-If a label doesn't exist in the repo, pass it anyway — `gh` will create it or skip it depending on repo settings. This is fine.
-
-### Step 6 — Create the Issue
-
-1. Write the issue body to `/tmp/issue.md`
-2. Create the issue:
+Before creating the issue, validate that the labels you want to use actually exist in the repository.
 
 ```bash
-gh issue create \
-  --title "<concise title>" \
-  --body-file /tmp/issue.md \
-  --label "label1,label2"
+gh label list --limit 100 --json name --jq '.[].name' 2>&1
 ```
 
-The title should be:
-- Concise (under 80 characters)
-- Descriptive (someone scanning a list should understand the gist)
-- Written in the same language as the issue body
+For each intended label:
 
-### Step 7 — Return the Result
+1. **If the label exists**: Use it as-is (respect exact casing).
+2. **If the label does NOT exist**: Create it before using it:
+   ```bash
+   gh label create "<label-name>" --description "<brief description>" --color "<hex-color>" 2>&1
+   ```
+
+   Use these standard colors:
+   | Label | Color |
+   |-------|-------|
+   | `bug` | `d73a4a` |
+   | `enhancement` | `a2eeef` |
+   | `refactor` | `e4e669` |
+   | `investigation` | `d4c5f9` |
+   | `architecture` | `1d76db` |
+   | `high` | `b60205` |
+   | `medium` | `fbca04` |
+   | `low` | `0e8a16` |
+   | `backend` | `5319e7` |
+   | `frontend` | `bfd4f2` |
+   | `infra` | `f9d0c4` |
+   | `database` | `c2e0c6` |
+   | `api` | `006b75` |
+   | `auth` | `e99695` |
+   | `storage` | `d4c5f9` |
+   | `i18n` | `fef2c0` |
+   | `integrations` | `c5def5` |
+   | `docs` | `0075ca` |
+   | `testing` | `bfdadc` |
+   | `ci-cd` | `f9d0c4` |
+   | `monitoring` | `d93f0b` |
+
+   **If label creation fails** (e.g., insufficient permissions): Proceed without that label. Do NOT fail the entire issue creation. Log which labels could not be created and mention it to the user at the end.
+
+### Step 8 — Standardize the Title
+
+The title MUST follow this format:
+
+```
+[<Type>] <concise description>
+```
+
+**Rules:**
+- **Prefix** is mandatory and must be one of: `[Bug]`, `[Refactor]`, `[Enhancement]`, `[Investigation]`, `[Architecture]`
+- **Description** must be concise, clear, and scannable
+- **Max length**: 80 characters total (including prefix)
+- **Language**: Same language chosen in Step 2
+- **No trailing punctuation**
+- **No redundant words** (avoid "Implement implementation of...", "Fix the fix for...")
+
+**Examples:**
+- `[Bug] Login fails silently when session token expires`
+- `[Refactor] Extract payment processing into dedicated service`
+- `[Enhancement] Add bulk export for user analytics`
+- `[Investigation] Intermittent 502 errors on /api/webhooks`
+- `[Architecture] Migrate queue system from Redis to SQS`
+
+### Step 9 — Create the Issue
+
+1. Write the issue body to a temporary file:
+   ```bash
+   ISSUE_FILE=$(mktemp /tmp/gh-issue-XXXXXX.md)
+   ```
+
+2. Create the issue with error handling:
+   ```bash
+   gh issue create \
+     --title "<standardized title>" \
+     --body-file "$ISSUE_FILE" \
+     --label "label1,label2" 2>&1
+   ```
+
+3. **Handle errors:**
+
+   | Error | Action |
+   |-------|--------|
+   | `gh: Not Found (HTTP 404)` | Repository not found or no access. Tell user to check repo permissions. |
+   | `gh: Validation Failed` | Usually invalid labels or title. Retry without labels, then report. |
+   | `gh: auth login required` | Tell user to run `gh auth login`. |
+   | `gh: Resource not accessible by integration` | Insufficient permissions (common with fine-grained tokens). Tell user to check token scopes. |
+   | `SAML enforcement` | Organization requires SAML SSO. Tell user to authorize their token for the org. |
+   | Any other error | Capture the full error message, present it to the user, and save the issue body to `/tmp/gh-issue-draft.md` so nothing is lost. |
+
+4. Clean up the temporary file after successful creation:
+   ```bash
+   rm -f "$ISSUE_FILE"
+   ```
+
+### Step 10 — Post-Creation Cross-References
+
+After successful creation, if related issues were identified during the duplicate check:
+
+1. Comment on each related open issue with a cross-reference:
+   ```bash
+   gh issue comment <related-issue-number> --body "Related: #<new-issue-number> — <brief description of relationship>" 2>&1
+   ```
+
+2. This ensures bidirectional traceability. Only do this for issues with **partial similarity** or clear topical relationship — not for every issue found during search.
+
+### Step 11 — Return the Result
 
 Output ONLY one of:
-- The URL of the created issue
+- The URL of the created issue (and URLs of any additional issues if scope was split)
 - A message that you commented on an existing issue (with the issue URL)
-- A question to the user (if duplicate ambiguity needs resolution)
+- A question to the user (if duplicate ambiguity or scope needs resolution)
+- A note about any labels that could not be created (if applicable)
 
 Nothing else. No issue body, no intermediate output, no "here's what I did" summary.
 
@@ -187,6 +389,10 @@ Nothing else. No issue body, no intermediate output, no "here's what I did" summ
 ## Edge Cases
 
 - **Ambiguous request**: If the user's instruction is too vague to write a quality issue, ask one focused clarifying question before proceeding. Don't guess.
-- **Multiple issues needed**: If the request clearly contains multiple distinct concerns, ask the user if they want one combined issue or separate ones.
-- **Private repos**: `gh` handles auth automatically. If it fails, tell the user to run `gh auth login`.
-- **No `gh` CLI**: If `gh` is not available, tell the user to install it and provide the issue content in a temporary file they can use manually.
+- **Multiple issues needed**: If the request clearly contains multiple distinct concerns, follow the Scope Control step (Step 4).
+- **Private repos**: `gh` handles auth automatically. Errors are caught in Step 9.
+- **No `gh` CLI**: Caught in Step 0. Tell the user to install it and provide the issue content in a temporary file they can use manually.
+- **No existing issues in repo**: Skip language detection from issues, rely on README/commit messages/user language. Skip label search during deduplication.
+- **Rate limiting**: If `gh` returns HTTP 429 or rate limit errors, tell the user to wait and retry. Do not retry automatically.
+- **Very large repos with many issues**: The multi-strategy search in Step 6 uses targeted keyword queries instead of fetching all issues, so it scales to repositories of any size.
+- **Conflicting labels**: If the repo already has labels with different naming conventions (e.g., `type: bug` instead of `bug`), prefer the repo's existing convention. Map your intended labels to their equivalents.
