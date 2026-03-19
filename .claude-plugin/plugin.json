@@ -1,0 +1,20 @@
+{
+  "name": "agent-skills",
+  "description": "GitHub issue resolution pipeline: analyze issues, generate PRDs, create task plans, and implement user stories autonomously. Includes skills for creating architect-quality issues and end-to-end issue resolution.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Fabio Assunção",
+    "url": "https://github.com/fabioassuncao"
+  },
+  "homepage": "https://github.com/fabioassuncao/agent-skills",
+  "repository": "https://github.com/fabioassuncao/agent-skills",
+  "license": "MIT",
+  "keywords": [
+    "github",
+    "issues",
+    "prd",
+    "task-planning",
+    "automation",
+    "code-generation"
+  ]
+}

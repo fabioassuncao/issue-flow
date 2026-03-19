@@ -1,0 +1,21 @@
+{
+  "name": "agent-skills-marketplace",
+  "owner": {
+    "name": "fabioassuncao"
+  },
+  "metadata": {
+    "description": "GitHub issue resolution pipeline: analyze issues, generate PRDs, create task plans, and implement user stories autonomously",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "agent-skills",
+      "source": "./",
+      "description": "End-to-end GitHub issue resolution with architect-quality issue creation, PRD generation, task planning, and autonomous implementation",
+      "version": "1.0.0",
+      "keywords": ["github", "issues", "prd", "automation", "task-planning", "code-generation"],
+      "category": "productivity",
+      "skills": "./skills/"
+    }
+  ]
+}

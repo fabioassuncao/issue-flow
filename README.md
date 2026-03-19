@@ -1,6 +1,6 @@
 # Agent Skills
 
-Personal collection of Agent Skills compatible with [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and other tools that support the Agent Skills format.
+Personal collection of Agent Skills compatible with [Claude Code](https://docs.anthropic.com/en/docs/claude-code) plugins and other tools that support the Agent Skills format.
 
 ## Available Skills
 
@@ -163,6 +163,26 @@ issues/
 - Repository with a `main` or `master` branch
 
 ## Installation
+
+### As a Claude Code Plugin
+
+Install directly within Claude Code using the plugin system:
+
+```bash
+# Via CLI
+claude plugin install agent-skills
+
+# Or within Claude Code interactive mode
+/plugin install agent-skills
+```
+
+You can also test locally during development:
+
+```bash
+claude --plugin-dir ./agent-skills
+```
+
+Once installed, skills are namespaced under `agent-skills:` (e.g., `/agent-skills:resolve-gh-issue`).
 
 ### Using [skills.sh](https://skills.sh/)
 
