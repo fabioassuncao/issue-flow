@@ -2,11 +2,46 @@
 
 Ralph is an autonomous AI agent loop that runs [Claude Code](https://docs.anthropic.com/en/docs/claude-code) repeatedly until all task plan items are complete. Each iteration is a fresh instance with clean context. Memory persists via git history, `progress.txt`, and the task plan JSON.
 
-## Prerequisites
+## System Requirements
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed and authenticated (`npm install -g @anthropic-ai/claude-code`)
-- `jq` installed (`brew install jq` on macOS)
-- A git repository for your project
+### Tested On
+
+- **macOS** 12 (Monterey) or later
+- **Ubuntu** 22.04 (Jammy) or later
+- **Debian** 11 (Bullseye) or later
+
+Ralph should work on any Unix-like system with Bash and the required tools installed.
+
+### Required Tools
+
+| Tool | Minimum Version | Description |
+|------|----------------|-------------|
+| [Bash](https://www.gnu.org/software/bash/) | 3.2+ | Shell interpreter |
+| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | latest | Anthropic's CLI for Claude |
+| [jq](https://jqlang.github.io/jq/) | any | JSON processor for task plan management |
+| [git](https://git-scm.com/) | any | Version control |
+
+### Optional Tools (Remote Execution Only)
+
+| Tool | Description |
+|------|-------------|
+| `curl` or `wget` | Required only when running Ralph remotely (to download `prompt.md`) |
+
+### Installation
+
+**macOS (Homebrew):**
+```bash
+brew install bash jq git
+npm install -g @anthropic-ai/claude-code
+```
+
+> **Note:** Ralph works with the system Bash on supported macOS versions, including the default Bash 3.2 used by `curl ... | bash`. If you prefer to run a Homebrew-installed Bash explicitly, use `$(brew --prefix)/bin/bash scripts/ralph/ralph.sh`.
+
+**Debian / Ubuntu (apt):**
+```bash
+sudo apt-get update && sudo apt-get install -y bash jq git curl
+npm install -g @anthropic-ai/claude-code
+```
 
 ## Usage
 
@@ -29,11 +64,11 @@ With `--issue`, Ralph reads from `issues/42/tasks.json` and writes progress to `
 Run Ralph in any project without cloning this repository. The script automatically downloads `prompt.md` when it's not found locally:
 
 ```bash
-# Using curl
-bash <(curl -fsSL https://raw.githubusercontent.com/fabioassuncao/agent-skills/main/scripts/ralph/ralph.sh) --issue 42
+# Show help
+curl -sSL https://raw.githubusercontent.com/fabioassuncao/agent-skills/main/scripts/ralph/ralph.sh | bash -s -- --help
 
-# Using wget
-bash <(wget -qO- https://raw.githubusercontent.com/fabioassuncao/agent-skills/main/scripts/ralph/ralph.sh) --issue 42
+# Run issue #42
+curl -sSL https://raw.githubusercontent.com/fabioassuncao/agent-skills/main/scripts/ralph/ralph.sh | bash -s -- --issue 42
 ```
 
 In remote mode, standalone artifacts (`prd.json`, `progress.txt`) default to the git project root instead of `scripts/ralph/`.

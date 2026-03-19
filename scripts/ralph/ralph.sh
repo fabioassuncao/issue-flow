@@ -1,8 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Ralph Wiggum - Long-running AI agent loop
 # Usage: ./ralph.sh [--issue N] [--max-iterations N] [--retry-limit N] [--retry-forever]
 
 set -euo pipefail
+
+# Cache OS detection (used for platform-specific install hints)
+_RALPH_OS="$(uname -s)"
 
 MAX_ITERATIONS=""
 RETRY_LIMIT=10
@@ -111,6 +114,47 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Return a platform-appropriate install command for a given package
+_install_hint() {
+  local pkg="$1"
+  if [ "$_RALPH_OS" = "Darwin" ]; then
+    echo "brew install $pkg"
+  elif command -v apt-get >/dev/null 2>&1; then
+    echo "sudo apt-get install $pkg"
+  elif command -v dnf >/dev/null 2>&1; then
+    echo "sudo dnf install $pkg"
+  elif command -v pacman >/dev/null 2>&1; then
+    echo "sudo pacman -S $pkg"
+  elif command -v apk >/dev/null 2>&1; then
+    echo "apk add $pkg"
+  else
+    echo "install $pkg using your system package manager"
+  fi
+}
+
+# Validate required dependencies
+_missing=()
+for _dep in jq git claude; do
+  if ! command -v "$_dep" >/dev/null 2>&1; then
+    _missing+=("$_dep")
+  fi
+done
+
+if [ "${#_missing[@]}" -gt 0 ]; then
+  echo "Error: the following required tools are not installed:"
+  for _dep in "${_missing[@]}"; do
+    case "$_dep" in
+      claude)
+        echo "  - claude  (install with: npm install -g @anthropic-ai/claude-code)"
+        ;;
+      *)
+        echo "  - $_dep  (install with: $(_install_hint "$_dep"))"
+        ;;
+    esac
+  done
+  exit 1
+fi
+
 # Try to resolve SCRIPT_DIR from BASH_SOURCE
 SCRIPT_DIR=""
 if [ -n "${BASH_SOURCE[0]:-}" ] && [ "${BASH_SOURCE[0]}" != "bash" ]; then
@@ -126,6 +170,13 @@ PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 if [ -n "$SCRIPT_DIR" ] && [ -f "$SCRIPT_DIR/prompt.md" ]; then
   PROMPT_FILE="$SCRIPT_DIR/prompt.md"
 else
+  # Validate curl/wget early — the download block below assumes one is available
+  if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
+    echo "Error: curl or wget is required to download prompt.md in remote mode."
+    echo "  Install with: $(_install_hint curl)"
+    exit 1
+  fi
+
   echo "prompt.md not found locally, downloading remote version..."
   RALPH_TMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/ralph.XXXXXX")
   REMOTE_URL="https://raw.githubusercontent.com/fabioassuncao/agent-skills/main/scripts/ralph/prompt.md"
@@ -134,9 +185,6 @@ else
     curl -fsSL "$REMOTE_URL" -o "$RALPH_TMP_DIR/prompt.md"
   elif command -v wget >/dev/null 2>&1; then
     wget -qO "$RALPH_TMP_DIR/prompt.md" "$REMOTE_URL"
-  else
-    echo "Error: curl or wget is required to download prompt.md"
-    exit 1
   fi
 
   if [ ! -s "$RALPH_TMP_DIR/prompt.md" ]; then
