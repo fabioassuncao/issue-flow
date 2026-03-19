@@ -166,23 +166,23 @@ issues/
 
 ### As a Claude Code Plugin
 
-Install directly within Claude Code using the plugin system:
+First, add the marketplace, then install the plugin:
 
 ```bash
-# Via CLI
-claude plugin install agent-skills
+# 1. Add the marketplace
+/plugin marketplace add fabioassuncao/agent-skills
 
-# Or within Claude Code interactive mode
-/plugin install agent-skills
+# 2. Install the plugin
+/plugin install agent-skills@agent-skills-marketplace
 ```
 
-You can also test locally during development:
+Once installed, skills are namespaced under `agent-skills:` (e.g., `/agent-skills:resolve-gh-issue`).
+
+To test locally during development:
 
 ```bash
 claude --plugin-dir ./agent-skills
 ```
-
-Once installed, skills are namespaced under `agent-skills:` (e.g., `/agent-skills:resolve-gh-issue`).
 
 ### Using [skills.sh](https://skills.sh/)
 
