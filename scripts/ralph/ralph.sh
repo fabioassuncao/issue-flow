@@ -2,7 +2,7 @@
 # Ralph Wiggum - Long-running AI agent loop
 # Usage: ./ralph.sh [--issue N] [--max-iterations N] [--retry-limit N] [--retry-forever]
 
-set -eo pipefail
+set -euo pipefail
 
 MAX_ITERATIONS=""
 RETRY_LIMIT=10
@@ -10,6 +10,15 @@ RETRY_FOREVER=0
 ISSUE_NUMBER=""
 BACKOFF_BASE_SECONDS=30
 BACKOFF_MAX_SECONDS=900
+RALPH_TMP_DIR=""
+PROMPT_FILE=""
+
+cleanup() {
+  if [ -n "${RALPH_TMP_DIR:-}" ] && [ -d "$RALPH_TMP_DIR" ]; then
+    rm -rf "$RALPH_TMP_DIR"
+  fi
+}
+trap cleanup EXIT
 
 usage() {
   cat <<EOF
@@ -37,9 +46,21 @@ require_numeric_arg() {
   fi
 }
 
+require_arg_value() {
+  local flag="$1"
+  local value="${2-}"
+
+  if [ -z "$value" ]; then
+    echo "Error: $flag requires a value."
+    usage
+    exit 1
+  fi
+}
+
 while [[ $# -gt 0 ]]; do
   case $1 in
     --issue)
+      require_arg_value "$1" "${2-}"
       ISSUE_NUMBER="$2"
       shift 2
       ;;
@@ -48,6 +69,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --max-iterations)
+      require_arg_value "$1" "${2-}"
       require_numeric_arg "$1" "$2"
       MAX_ITERATIONS="$2"
       shift 2
@@ -58,6 +80,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --retry-limit)
+      require_arg_value "$1" "${2-}"
       require_numeric_arg "$1" "$2"
       RETRY_LIMIT="$2"
       shift 2
@@ -88,8 +111,41 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Try to resolve SCRIPT_DIR from BASH_SOURCE
+SCRIPT_DIR=""
+if [ -n "${BASH_SOURCE[0]:-}" ] && [ "${BASH_SOURCE[0]}" != "bash" ]; then
+  _candidate="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
+  if [ -d "$_candidate" ] && [ -f "$_candidate/prompt.md" ]; then
+    SCRIPT_DIR="$_candidate"
+  fi
+fi
+
 PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+# Resolve prompt.md location
+if [ -n "$SCRIPT_DIR" ] && [ -f "$SCRIPT_DIR/prompt.md" ]; then
+  PROMPT_FILE="$SCRIPT_DIR/prompt.md"
+else
+  echo "prompt.md not found locally, downloading remote version..."
+  RALPH_TMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/ralph.XXXXXX")
+  REMOTE_URL="https://raw.githubusercontent.com/fabioassuncao/agent-skills/main/scripts/ralph/prompt.md"
+
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$REMOTE_URL" -o "$RALPH_TMP_DIR/prompt.md"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -qO "$RALPH_TMP_DIR/prompt.md" "$REMOTE_URL"
+  else
+    echo "Error: curl or wget is required to download prompt.md"
+    exit 1
+  fi
+
+  if [ ! -s "$RALPH_TMP_DIR/prompt.md" ]; then
+    echo "Error: failed to download prompt.md from remote"
+    exit 1
+  fi
+
+  PROMPT_FILE="$RALPH_TMP_DIR/prompt.md"
+fi
 
 if [ -n "$ISSUE_NUMBER" ]; then
   # Skills pipeline mode
@@ -98,11 +154,12 @@ if [ -n "$ISSUE_NUMBER" ]; then
   ARCHIVE_DIR="$PROJECT_ROOT/issues/${ISSUE_NUMBER}/archive"
   LAST_BRANCH_FILE="$PROJECT_ROOT/issues/${ISSUE_NUMBER}/.last-branch"
 else
-  # Standalone mode (original)
-  PRD_FILE="$SCRIPT_DIR/prd.json"
-  PROGRESS_FILE="$SCRIPT_DIR/progress.txt"
-  ARCHIVE_DIR="$SCRIPT_DIR/archive"
-  LAST_BRANCH_FILE="$SCRIPT_DIR/.last-branch"
+  # Standalone mode — use SCRIPT_DIR if available, otherwise PROJECT_ROOT
+  _base="${SCRIPT_DIR:-$PROJECT_ROOT}"
+  PRD_FILE="$_base/prd.json"
+  PROGRESS_FILE="$_base/progress.txt"
+  ARCHIVE_DIR="$_base/archive"
+  LAST_BRANCH_FILE="$_base/.last-branch"
 fi
 
 if [ ! -f "$PRD_FILE" ]; then
@@ -326,7 +383,7 @@ while true; do
   PROMPT=$(sed \
     -e "s|__PRD_FILE__|$PRD_FILE|g" \
     -e "s|__PROGRESS_FILE__|$PROGRESS_FILE|g" \
-    "$SCRIPT_DIR/prompt.md")
+    "$PROMPT_FILE")
 
   iteration_started_at=$(iso_now)
   mark_issue_in_progress "$iteration_started_at"

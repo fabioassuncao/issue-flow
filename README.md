@@ -15,13 +15,17 @@ Personal collection of [Agent Skills](https://agentskills.io) for GitHub issue m
 
 ## Ralph (Advanced)
 
-[Ralph](scripts/ralph/) is an autonomous AI agent loop that can execute task plans unattended. When resolving an issue, choose **option B** at the confirmation step to save the plan and run it later with Ralph:
+[Ralph](scripts/ralph/) is an autonomous AI agent loop that can execute task plans unattended. When resolving an issue, choose **option B** at the confirmation step to save the plan and run it later with Ralph.
 
 ```bash
+# Local (from a clone of this repo)
 ./scripts/ralph/ralph.sh --issue 42
+
+# Remote (from any project — no clone needed)
+bash <(curl -fsSL https://raw.githubusercontent.com/fabioassuncao/agent-skills/main/scripts/ralph/ralph.sh) --issue 42
 ```
 
-See the [Ralph README](scripts/ralph/) for details.
+In remote mode, `prompt.md` is downloaded automatically and cleaned up on exit. See the [Ralph README](scripts/ralph/) for details.
 
 ## File Structure
 

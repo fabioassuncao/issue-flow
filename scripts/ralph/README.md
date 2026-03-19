@@ -10,23 +10,37 @@ Ralph is an autonomous AI agent loop that runs [Claude Code](https://docs.anthro
 
 ## Usage
 
-### With the skills pipeline (recommended)
+### Local execution
 
-First, generate the PRD and task plan using the `resolve-gh-issue` skill. Choose **option B** at the confirmation step to save artifacts without executing. Then run Ralph:
+Run directly from a local clone of the repository:
 
 ```bash
+# With the skills pipeline (recommended)
 ./scripts/ralph/ralph.sh --issue 42
-```
 
-This reads from `issues/42/tasks.json` and writes progress to `issues/42/progress.txt`.
-
-### Standalone mode
-
-Place a `prd.json` and optionally a `progress.txt` in the `scripts/ralph/` directory, then run:
-
-```bash
+# Standalone mode
 ./scripts/ralph/ralph.sh [max_iterations]
 ```
+
+With `--issue`, Ralph reads from `issues/42/tasks.json` and writes progress to `issues/42/progress.txt`. In standalone mode, place a `prd.json` in `scripts/ralph/` and Ralph will use it directly.
+
+### Remote execution
+
+Run Ralph in any project without cloning this repository. The script automatically downloads `prompt.md` when it's not found locally:
+
+```bash
+# Using curl
+bash <(curl -fsSL https://raw.githubusercontent.com/fabioassuncao/agent-skills/main/scripts/ralph/ralph.sh) --issue 42
+
+# Using wget
+bash <(wget -qO- https://raw.githubusercontent.com/fabioassuncao/agent-skills/main/scripts/ralph/ralph.sh) --issue 42
+```
+
+In remote mode, standalone artifacts (`prd.json`, `progress.txt`) default to the git project root instead of `scripts/ralph/`.
+
+### Setup for remote execution
+
+First, generate the PRD and task plan using the `resolve-gh-issue` skill. Choose **option B** at the confirmation step to save artifacts without executing. Then run Ralph remotely (or locally) to execute the plan.
 
 Without `--max-iterations` (or the positional numeric alias), Ralph runs until the issue is completed or it hits a fatal error.
 
@@ -85,6 +99,15 @@ Without `--max-iterations` (or the positional numeric alias), Ralph runs until t
 - Transient Claude/API/network failures do not mark the issue complete and are retried automatically
 
 When all stories are complete, Ralph exits with `<promise>COMPLETE</promise>` and persists `issueStatus=completed`.
+
+## Local vs Remote Behavior
+
+| Aspect | Local | Remote |
+|--------|-------|--------|
+| `prompt.md` | Read from `scripts/ralph/` | Downloaded to a temp dir (auto-cleaned on exit) |
+| Standalone artifacts | Stored in `scripts/ralph/` | Stored in the git project root |
+| `--issue` artifacts | `issues/N/` (same in both modes) | `issues/N/` (same in both modes) |
+| Requirements | `jq`, Claude Code | `jq`, Claude Code, `curl` or `wget` |
 
 ## Credits
 
