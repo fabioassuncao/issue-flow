@@ -4,11 +4,13 @@ Ralph is an autonomous AI agent loop that runs [Claude Code](https://docs.anthro
 
 ## System Requirements
 
-### Supported Operating Systems
+### Tested On
 
 - **macOS** 12 (Monterey) or later
 - **Ubuntu** 22.04 (Jammy) or later
 - **Debian** 11 (Bullseye) or later
+
+Ralph should work on any Unix-like system with Bash and the required tools installed.
 
 ### Required Tools
 
