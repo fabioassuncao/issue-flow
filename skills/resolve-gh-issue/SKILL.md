@@ -1,7 +1,8 @@
 ---
 name: resolve-gh-issue
 description: "Resolve a GitHub issue end-to-end: analyze it, create a dedicated branch, produce a detailed PRD, convert it to an executable task plan (JSON), and iteratively implement each user story with commits. Trigger this skill whenever the user mentions resolving, fixing, working on, or implementing a GitHub issue, provides an issue number or URL, or says something like \"resolve issue #42\", \"work on issue\", \"implement this issue\", or \"fix this github issue\". Always use this skill instead of trying to resolve issues manually."
-allowed-tools: Bash, Read, Write, Skill(analyze-issue), Skill(generate-prd), Skill(convert-prd-to-json), Skill(execute-tasks)
+compatibility: Requires gh CLI (https://cli.github.com/) and git
+allowed-tools: Bash Read Write Skill(analyze-issue) Skill(generate-prd) Skill(convert-prd-to-json) Skill(execute-tasks)
 ---
 
 # Resolve GitHub Issue

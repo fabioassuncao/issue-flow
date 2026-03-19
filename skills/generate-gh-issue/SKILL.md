@@ -10,6 +10,7 @@ description: >
   "create an issue for X". Also triggers on: "open an issue", "file a bug", "I want to propose...",
   "add this to the backlog", "gh issue", or any request that implies creating a trackable work item
   on GitHub.
+compatibility: Requires gh CLI (https://cli.github.com/) and git
 ---
 
 # Generate GitHub Issue
@@ -142,39 +143,39 @@ Before writing, evaluate whether the request is too broad for a single issue.
 Use this exact structure. Every section must be present and substantive — no placeholders or one-liners.
 
 ```markdown
-## Contexto e Motivacao
+## Context and Motivation
 
 [Why does this matter? What business or technical need drives this?]
 
-## Diagnostico do Cenario Atual
+## Current State Diagnosis
 
 [What exists today? How does the current implementation work? Be specific — reference files, patterns, and architecture.]
 
-## Problemas Identificados
+## Identified Problems
 
 [Concrete problems with the current state. Use a numbered or bulleted list.]
 
-## Objetivos
+## Objectives
 
 [What should be true when this is done? Clear, measurable goals.]
 
-## Proposta de Solucao
+## Proposed Solution
 
 [The recommended approach. Be specific about what to change, where, and how. Reference actual files/modules when possible.]
 
-## Alternativas Consideradas
+## Alternatives Considered
 
 [At least one alternative approach and why it was not chosen.]
 
-## Pros e Contras
+## Pros and Cons
 
 ### Pros
 [Benefits of the proposed solution]
 
-### Contras
+### Cons
 [Tradeoffs, costs, or downsides]
 
-## Plano de Execucao
+## Execution Plan
 
 [Step-by-step implementation plan. Order matters — list dependencies between steps. Use checkboxes.]
 
@@ -182,24 +183,24 @@ Use this exact structure. Every section must be present and substantive — no p
 - [ ] Step 2
 - [ ] ...
 
-## Riscos e Cuidados
+## Risks and Precautions
 
 [What could go wrong? Migration risks, breaking changes, performance concerns, data loss scenarios.]
 
-## Criterios de Aceite
+## Acceptance Criteria
 
 [How do we know this is done? Specific, testable criteria.]
 
 - [ ] Criterion 1
 - [ ] Criterion 2
 
-## Resultado Esperado
+## Expected Outcome
 
 [Paint the picture of success. What does the system look like after this is complete?]
 
-## Issues Relacionadas / Observacoes
+## Related Issues / Notes
 
-[Links to related issues, PRs, or external references. Use `#number` for cross-references. If none, say "Nenhuma."]
+[Links to related issues, PRs, or external references. Use `#number` for cross-references. If none, say "None."]
 ```
 
 **Section headers language**: The section headers above are templates. Translate them to match the chosen issue language from Step 2. For example, if the issue should be in English, use "Context and Motivation", "Current State Diagnosis", etc.

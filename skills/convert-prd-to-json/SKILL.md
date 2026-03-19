@@ -1,6 +1,11 @@
 ---
 name: convert-prd-to-json
-description: Convert a PRD markdown file (issues/prd-issue-{N}.md) into a structured JSON task plan (issues/prd-issue-{N}.json) suitable for autonomous iterative execution.
+description: >
+  Convert a PRD markdown file (issues/prd-issue-{N}.md) into a structured JSON task plan
+  (issues/prd-issue-{N}.json) suitable for autonomous iterative execution. Use this skill
+  when you have a PRD and need to convert it into a machine-readable task plan with ordered
+  user stories, acceptance criteria, and dependency tracking. Triggers on: "convert prd to json",
+  "create task plan from prd", or when the resolve-gh-issue skill delegates task plan creation.
 ---
 
 # PRD → JSON Converter

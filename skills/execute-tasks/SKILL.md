@@ -1,6 +1,11 @@
 ---
 name: execute-tasks
-description: Iteratively implement user stories from issues/prd-issue-{N}.json, committing after each passing story and updating the task plan. Follows the Ralph autonomous agent pattern.
+description: >
+  Iteratively implement user stories from issues/prd-issue-{N}.json, committing after each
+  passing story and updating the task plan. Use this skill when you have a JSON task plan and
+  need to autonomously implement each user story one at a time with quality checks, commits,
+  and progress tracking. Triggers on: "execute tasks", "implement the stories", "start coding
+  the plan", or when the resolve-gh-issue skill delegates implementation.
 ---
 
 # Execute Tasks (Autonomous Agent)
@@ -102,9 +107,11 @@ If browser tools aren't available, note in the progress log that manual browser 
 Once all quality checks pass:
 
 ```bash
-git add -A
+git add <specific-files-changed>
 git commit -m "feat: [Story ID] - [Story Title]"
 ```
+
+**Important:** Do NOT use `git add -A` or `git add .` — always add specific files by name to avoid accidentally committing sensitive files (`.env`, credentials, etc.) or unrelated changes.
 
 Example: `feat: US-002 - Display status badge on task cards`
 

@@ -1,6 +1,12 @@
 ---
 name: generate-prd
-description: Generate a structured Product Requirements Document (PRD) from a GitHub issue analysis. Produces issues/prd-issue-{ISSUE_NUMBER}.md with user stories, acceptance criteria, and functional requirements.
+description: >
+  Generate a structured Product Requirements Document (PRD) from a GitHub issue analysis.
+  Produces issues/prd-issue-{ISSUE_NUMBER}.md with user stories, acceptance criteria, and
+  functional requirements. Use this skill when you need to create a PRD from an analyzed
+  GitHub issue, plan implementation of a feature or fix, or when the resolve-gh-issue skill
+  delegates PRD generation. Triggers on: "generate prd", "create a plan for this issue",
+  "write requirements", or any request to produce a structured implementation plan from an issue.
 ---
 
 # PRD Generator (GitHub Issue)

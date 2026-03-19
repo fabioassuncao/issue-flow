@@ -1,6 +1,11 @@
 ---
 name: analyze-issue
-description: Fetch and analyze a GitHub issue to extract context, scope, affected areas, and complexity before planning implementation.
+description: >
+  Fetch and analyze a GitHub issue to extract context, scope, affected areas, and complexity
+  before planning implementation. Use this skill when you need to understand a GitHub issue
+  in depth before creating a PRD or task plan — e.g., when the user says "analyze issue #42",
+  "what does this issue involve", or when the resolve-gh-issue skill delegates analysis.
+compatibility: Requires gh CLI (https://cli.github.com/) and git
 ---
 
 # Analyze GitHub Issue
