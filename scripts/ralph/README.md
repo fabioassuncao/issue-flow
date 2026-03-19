@@ -2,11 +2,44 @@
 
 Ralph is an autonomous AI agent loop that runs [Claude Code](https://docs.anthropic.com/en/docs/claude-code) repeatedly until all task plan items are complete. Each iteration is a fresh instance with clean context. Memory persists via git history, `progress.txt`, and the task plan JSON.
 
-## Prerequisites
+## System Requirements
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed and authenticated (`npm install -g @anthropic-ai/claude-code`)
-- `jq` installed (`brew install jq` on macOS)
-- A git repository for your project
+### Supported Operating Systems
+
+- **macOS** 12 (Monterey) or later
+- **Ubuntu** 22.04 (Jammy) or later
+- **Debian** 11 (Bullseye) or later
+
+### Required Tools
+
+| Tool | Minimum Version | Description |
+|------|----------------|-------------|
+| [Bash](https://www.gnu.org/software/bash/) | 4.0+ | Shell interpreter (macOS ships with 3.2 — upgrade required) |
+| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | latest | Anthropic's CLI for Claude |
+| [jq](https://jqlang.github.io/jq/) | any | JSON processor for task plan management |
+| [git](https://git-scm.com/) | any | Version control |
+
+### Optional Tools (Remote Execution Only)
+
+| Tool | Description |
+|------|-------------|
+| `curl` or `wget` | Required only when running Ralph remotely (to download `prompt.md`) |
+
+### Installation
+
+**macOS (Homebrew):**
+```bash
+brew install bash jq git
+npm install -g @anthropic-ai/claude-code
+```
+
+> **Note:** macOS ships with Bash 3.2. After installing Bash via Homebrew, you may need to add the new Bash to your PATH or invoke Ralph explicitly with the Homebrew Bash: `/opt/homebrew/bin/bash scripts/ralph/ralph.sh`
+
+**Debian / Ubuntu (apt):**
+```bash
+sudo apt-get update && sudo apt-get install -y bash jq git curl
+npm install -g @anthropic-ai/claude-code
+```
 
 ## Usage
 
