@@ -6,8 +6,8 @@ Personal collection of Agent Skills compatible with [Claude Code](https://docs.a
 
 | Skill | Description |
 |-------|-------------|
-| `generate-github-issue` | Generates detailed, architect-quality GitHub issues from short instructions. Analyzes the project's stack, architecture, and codebase before writing. Detects duplicates, validates labels, and publishes via `gh` CLI. |
-| `resolve-github-issue` | Resolves a GitHub issue end-to-end: analyzes it, creates a branch, produces a PRD, converts it to a task plan, and implements each user story with commits. Orchestrates all sub-skills automatically. |
+| `generate-gh-issue` | Generates detailed, architect-quality GitHub issues from short instructions. Analyzes the project's stack, architecture, and codebase before writing. Detects duplicates, validates labels, and publishes via `gh` CLI. |
+| `resolve-gh-issue` | Resolves a GitHub issue end-to-end: analyzes it, creates a branch, produces a PRD, converts it to a task plan, and implements each user story with commits. Orchestrates all sub-skills automatically. |
 | `analyze-issue` | Fetches and analyzes a GitHub issue to extract context, scope, affected areas, and complexity before planning implementation. |
 | `generate-prd` | Generates a structured PRD with user stories, acceptance criteria, and functional requirements from a GitHub issue analysis. |
 | `convert-prd-to-json` | Converts a PRD markdown file into a structured JSON task plan suitable for autonomous iterative execution. |
@@ -15,13 +15,13 @@ Personal collection of Agent Skills compatible with [Claude Code](https://docs.a
 
 ## GitHub Issue Resolution Flow
 
-The `resolve-github-issue` skill orchestrates a complete issue-to-implementation pipeline. Each sub-skill can also be used independently.
+The `resolve-gh-issue` skill orchestrates a complete issue-to-implementation pipeline. Each sub-skill can also be used independently.
 
 ### Skill Structure
 
 ```
 skills/
-├── resolve-github-issue/   ← main skill (orchestrator)
+├── resolve-gh-issue/   ← main skill (orchestrator)
 │   └── SKILL.md
 ├── analyze-issue/           ← analyzes the issue and extracts context
 │   └── SKILL.md
@@ -174,7 +174,7 @@ npx skills add fabioassuncao/agent-skills
 npx skills add https://github.com/fabioassuncao/agent-skills
 
 # A specific skill only
-npx skills add fabioassuncao/agent-skills --skill generate-github-issue
+npx skills add fabioassuncao/agent-skills --skill generate-gh-issue
 ```
 
 ### Manual
