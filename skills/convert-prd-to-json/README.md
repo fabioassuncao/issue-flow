@@ -10,8 +10,8 @@ Convert the PRD for issue #42 to a task plan
 
 ## Input / Output
 
-- **Input:** `issues/prd-issue-{N}.md`
-- **Output:** `issues/prd-issue-{N}.json`
+- **Input:** `issues/{N}/prd.md`
+- **Output:** `issues/{N}/tasks.json`
 
 ### JSON Structure
 
@@ -22,6 +22,10 @@ Convert the PRD for issue #42 to a task plan
   "issueUrl": "https://github.com/owner/repo/issues/42",
   "branchName": "issue/42-slug",
   "description": "Feature description",
+  "issueStatus": "pending",
+  "completedAt": null,
+  "lastAttemptAt": null,
+  "lastError": null,
   "userStories": [
     {
       "id": "US-001",
@@ -46,4 +50,4 @@ Convert the PRD for issue #42 to a task plan
 
 ## Requirements
 
-- An existing PRD file at `issues/prd-issue-{N}.md`
+- An existing PRD file at `issues/{N}/prd.md`

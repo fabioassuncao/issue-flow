@@ -19,15 +19,15 @@ For each user story (in priority order):
 5. **Browser verification** (for UI stories, using playwright-cli or playwright MCP)
 6. **Commit** with `feat: [Story ID] - [Story Title]`
 7. **Update** the JSON task plan (`passes: true`)
-8. **Log** progress to `issues/progress-issue-{N}.txt`
+8. **Log** progress to `issues/{N}/progress.txt`
 9. **Repeat** until all stories pass
 
 ## Progress Tracking
 
 The skill maintains:
 
-- **Task plan** (`issues/prd-issue-{N}.json`) — updated after each story
-- **Progress log** (`issues/progress-issue-{N}.txt`) — append-only log with changes, files modified, and learnings
+- **Task plan** (`issues/{N}/tasks.json`) — updated after each story
+- **Progress log** (`issues/{N}/progress.txt`) — append-only log with changes, files modified, and learnings
 - **Codebase patterns** — reusable patterns discovered during implementation, stored at the top of the progress log
 
 ## Error Recovery
@@ -37,5 +37,5 @@ The skill maintains:
 
 ## Requirements
 
-- An existing JSON task plan at `issues/prd-issue-{N}.json`
+- An existing JSON task plan at `issues/{N}/tasks.json`
 - Git configured with a working branch

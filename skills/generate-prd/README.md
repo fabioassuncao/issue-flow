@@ -10,7 +10,7 @@ Generate a PRD for issue #42
 
 ## Output
 
-Saves to `issues/prd-issue-{N}.md` with:
+Saves to `issues/{N}/prd.md` with:
 
 - Introduction / Overview
 - Goals

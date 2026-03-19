@@ -29,8 +29,8 @@ The skill orchestrates 4 sub-skills through a phased pipeline:
 Phase 0  → Checks for existing work in progress
 Phase 1  → [analyze-issue]        Reads and analyzes the issue via gh CLI
 Phase 2  → Creates branch          issue/{number}-{slug}
-Phase 3a → [generate-prd]         Generates PRD in issues/prd-issue-{N}.md
-Phase 3b → [convert-prd-to-json]  Converts to issues/prd-issue-{N}.json
+Phase 3a → [generate-prd]         Generates PRD in issues/{N}/prd.md
+Phase 3b → [convert-prd-to-json]  Converts to issues/{N}/tasks.json
 Phase 3c → Awaits confirmation     Presents the plan and asks for "yes" to continue
 Phase 4  → [execute-tasks]        Implements each user story with commits
 ```
@@ -57,11 +57,11 @@ C. Cancel
 
 ```
 issues/
-├── prd-issue-{N}.md            # PRD (human-readable)
-├── prd-issue-{N}.json          # Task plan (machine-readable)
-├── progress-issue-{N}.txt      # Progress log
-└── archive/
-    └── issue-{N}/              # Archived previous runs
+└── {N}/
+    ├── prd.md                  # PRD (human-readable)
+    ├── tasks.json              # Task plan (machine-readable)
+    ├── progress.txt            # Progress log
+    └── archive/                # Archived previous runs
 ```
 
 ## Sub-Skills
