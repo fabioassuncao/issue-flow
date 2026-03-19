@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Ralph Wiggum - Long-running AI agent loop
 # Usage: ./ralph.sh [--issue N] [--max-iterations N] [--retry-limit N] [--retry-forever]
 
