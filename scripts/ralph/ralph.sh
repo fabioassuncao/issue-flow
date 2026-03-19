@@ -4,6 +4,15 @@
 
 set -euo pipefail
 
+# Require Bash 4+ (macOS ships with 3.2 by default)
+if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
+  echo "Error: Ralph requires Bash 4.0 or later (current: ${BASH_VERSION})."
+  if [ "$(uname -s)" = "Darwin" ]; then
+    echo "  On macOS, install a newer version with: brew install bash"
+  fi
+  exit 1
+fi
+
 MAX_ITERATIONS=""
 RETRY_LIMIT=10
 RETRY_FOREVER=0
