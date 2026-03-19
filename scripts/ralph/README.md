@@ -14,7 +14,7 @@ Ralph is an autonomous AI agent loop that runs [Claude Code](https://docs.anthro
 
 | Tool | Minimum Version | Description |
 |------|----------------|-------------|
-| [Bash](https://www.gnu.org/software/bash/) | 4.0+ | Shell interpreter (macOS ships with 3.2 — upgrade required) |
+| [Bash](https://www.gnu.org/software/bash/) | 3.2+ | Shell interpreter |
 | [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | latest | Anthropic's CLI for Claude |
 | [jq](https://jqlang.github.io/jq/) | any | JSON processor for task plan management |
 | [git](https://git-scm.com/) | any | Version control |
@@ -33,7 +33,7 @@ brew install bash jq git
 npm install -g @anthropic-ai/claude-code
 ```
 
-> **Note:** macOS ships with Bash 3.2. After installing Bash via Homebrew, you may need to add the new Bash to your PATH or invoke Ralph explicitly with the Homebrew Bash: `/opt/homebrew/bin/bash scripts/ralph/ralph.sh`
+> **Note:** Ralph works with the system Bash on supported macOS versions, including the default Bash 3.2 used by `curl ... | bash`. If you prefer to run a Homebrew-installed Bash explicitly, use `$(brew --prefix)/bin/bash scripts/ralph/ralph.sh`.
 
 **Debian / Ubuntu (apt):**
 ```bash
@@ -62,11 +62,11 @@ With `--issue`, Ralph reads from `issues/42/tasks.json` and writes progress to `
 Run Ralph in any project without cloning this repository. The script automatically downloads `prompt.md` when it's not found locally:
 
 ```bash
-# Using curl
-bash <(curl -fsSL https://raw.githubusercontent.com/fabioassuncao/agent-skills/main/scripts/ralph/ralph.sh) --issue 42
+# Show help
+curl -sSL https://raw.githubusercontent.com/fabioassuncao/agent-skills/main/scripts/ralph/ralph.sh | bash -s -- --help
 
-# Using wget
-bash <(wget -qO- https://raw.githubusercontent.com/fabioassuncao/agent-skills/main/scripts/ralph/ralph.sh) --issue 42
+# Run issue #42
+curl -sSL https://raw.githubusercontent.com/fabioassuncao/agent-skills/main/scripts/ralph/ralph.sh | bash -s -- --issue 42
 ```
 
 In remote mode, standalone artifacts (`prd.json`, `progress.txt`) default to the git project root instead of `scripts/ralph/`.

@@ -22,7 +22,7 @@ Personal collection of [Agent Skills](https://agentskills.io) for GitHub issue m
 ./scripts/ralph/ralph.sh --issue 42
 
 # Remote (from any project — no clone needed)
-bash <(curl -fsSL https://raw.githubusercontent.com/fabioassuncao/agent-skills/main/scripts/ralph/ralph.sh) --issue 42
+curl -sSL https://raw.githubusercontent.com/fabioassuncao/agent-skills/main/scripts/ralph/ralph.sh | bash -s -- --issue 42
 ```
 
 In remote mode, `prompt.md` is downloaded automatically and cleaned up on exit. See the [Ralph README](scripts/ralph/) for details.
