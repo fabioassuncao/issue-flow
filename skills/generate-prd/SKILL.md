@@ -2,7 +2,7 @@
 name: generate-prd
 description: >
   Generate a structured Product Requirements Document (PRD) from a GitHub issue analysis.
-  Produces issues/prd-issue-{ISSUE_NUMBER}.md with user stories, acceptance criteria, and
+  Produces issues/{ISSUE_NUMBER}/prd.md with user stories, acceptance criteria, and
   functional requirements. Use this skill when you need to create a PRD from an analyzed
   GitHub issue, plan implementation of a feature or fix, or when the resolve-gh-issue skill
   delegates PRD generation. Triggers on: "generate prd", "create a plan for this issue",
@@ -16,7 +16,7 @@ description: >
 1. Take the analysis output from `analyze-issue`
 2. Ask clarifying questions if the issue is ambiguous
 3. Generate a structured PRD
-4. Save to `issues/prd-issue-{ISSUE_NUMBER}.md`
+4. Save to `issues/{ISSUE_NUMBER}/prd.md`
 
 **Important:** Do NOT start implementing. Just create the PRD.
 
@@ -143,9 +143,9 @@ Stories must be ordered so earlier stories never depend on later ones:
 
 ## Output
 
-Save the PRD to `issues/prd-issue-{ISSUE_NUMBER}.md`.
+Save the PRD to `issues/{ISSUE_NUMBER}/prd.md`.
 
-Create the `issues/` directory if it doesn't exist: `mkdir -p issues`
+Create the directory if it doesn't exist: `mkdir -p issues/{ISSUE_NUMBER}`
 
 ---
 
@@ -157,4 +157,4 @@ Create the `issues/` directory if it doesn't exist: `mkdir -p issues`
 - [ ] All acceptance criteria are verifiable (not vague)
 - [ ] UI stories include browser verification criterion
 - [ ] Non-goals section is present
-- [ ] Saved to `issues/prd-issue-{ISSUE_NUMBER}.md`
+- [ ] Saved to `issues/{ISSUE_NUMBER}/prd.md`

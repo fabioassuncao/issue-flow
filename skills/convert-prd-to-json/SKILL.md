@@ -1,8 +1,8 @@
 ---
 name: convert-prd-to-json
 description: >
-  Convert a PRD markdown file (issues/prd-issue-{N}.md) into a structured JSON task plan
-  (issues/prd-issue-{N}.json) suitable for autonomous iterative execution. Use this skill
+  Convert a PRD markdown file (issues/{N}/prd.md) into a structured JSON task plan
+  (issues/{N}/tasks.json) suitable for autonomous iterative execution. Use this skill
   when you have a PRD and need to convert it into a machine-readable task plan with ordered
   user stories, acceptance criteria, and dependency tracking. Triggers on: "convert prd to json",
   "create task plan from prd", or when the resolve-gh-issue skill delegates task plan creation.
@@ -12,7 +12,7 @@ description: >
 
 ## The Job
 
-Read `issues/prd-issue-{ISSUE_NUMBER}.md` and convert it to `issues/prd-issue-{ISSUE_NUMBER}.json`.
+Read `issues/{ISSUE_NUMBER}/prd.md` and convert it to `issues/{ISSUE_NUMBER}/tasks.json`.
 
 ---
 
@@ -117,23 +117,23 @@ If the order is wrong, reorder and renumber.
 
 ## Archive Check
 
-Before writing `issues/prd-issue-{ISSUE_NUMBER}.json`, check if one already exists from a **different feature** (different `branchName`):
+Before writing `issues/{ISSUE_NUMBER}/tasks.json`, check if one already exists from a **different feature** (different `branchName`):
 
 1. Read existing file if present
 2. Compare `branchName` fields
 3. If different AND there's content in the progress log:
-   - Archive the stale execution artifacts that still belong to the previous branch/feature: `mkdir -p issues/archive/issue-{ISSUE_NUMBER} && cp -f issues/prd-issue-{ISSUE_NUMBER}.json issues/progress-issue-{ISSUE_NUMBER}.txt issues/archive/issue-{ISSUE_NUMBER}/ 2>/dev/null || true`
-   - Remove the stale progress log so the new execution starts clean: `rm -f issues/progress-issue-{ISSUE_NUMBER}.txt`
+   - Archive the stale execution artifacts that still belong to the previous branch/feature: `mkdir -p issues/{ISSUE_NUMBER}/archive && cp -f issues/{ISSUE_NUMBER}/tasks.json issues/{ISSUE_NUMBER}/progress.txt issues/{ISSUE_NUMBER}/archive/ 2>/dev/null || true`
+   - Remove the stale progress log so the new execution starts clean: `rm -f issues/{ISSUE_NUMBER}/progress.txt`
 
 ---
 
 ## Output
 
-Save to `issues/prd-issue-{ISSUE_NUMBER}.json`.
+Save to `issues/{ISSUE_NUMBER}/tasks.json`.
 
 After saving, print a summary for the user:
 ```
-✅ Task plan created: issues/prd-issue-{ISSUE_NUMBER}.json
+✅ Task plan created: issues/{ISSUE_NUMBER}/tasks.json
 
 {N} user stories:
   US-001 (priority 1): [title]

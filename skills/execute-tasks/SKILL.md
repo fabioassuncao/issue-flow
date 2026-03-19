@@ -1,7 +1,7 @@
 ---
 name: execute-tasks
 description: >
-  Iteratively implement user stories from issues/prd-issue-{N}.json, committing after each
+  Iteratively implement user stories from issues/{N}/tasks.json, committing after each
   passing story and updating the task plan. Use this skill when you have a JSON task plan and
   need to autonomously implement each user story one at a time with quality checks, commits,
   and progress tracking. Triggers on: "execute tasks", "implement the stories", "start coding
@@ -16,8 +16,8 @@ You are an autonomous coding agent. Work on one user story at a time, commit it,
 
 ## Before Starting Each Iteration
 
-1. **Read the task plan**: `issues/prd-issue-{ISSUE_NUMBER}.json`
-2. **Read the progress log**: `issues/progress-issue-{ISSUE_NUMBER}.txt`
+1. **Read the task plan**: `issues/{ISSUE_NUMBER}/tasks.json`
+2. **Read the progress log**: `issues/{ISSUE_NUMBER}/progress.txt`
    - Pay special attention to the `## Codebase Patterns` section at the top
    - These are hard-won learnings from previous iterations — don't repeat mistakes
 3. **Read `CLAUDE.md`** if it exists (project conventions)
@@ -117,18 +117,18 @@ Example: `feat: US-002 - Display status badge on task cards`
 
 ### Step 7: Update the Task Plan
 
-Update `issues/prd-issue-{ISSUE_NUMBER}.json`:
+Update `issues/{ISSUE_NUMBER}/tasks.json`:
 - Set `"passes": true` for the completed story
 - Add any relevant notes to `"notes"` field (e.g., "Found that X pattern was needed")
 
 ```bash
 # Verify the JSON is still valid after editing
-cat issues/prd-issue-{ISSUE_NUMBER}.json | python3 -m json.tool > /dev/null
+cat issues/{ISSUE_NUMBER}/tasks.json | python3 -m json.tool > /dev/null
 ```
 
 ### Step 8: Append to Progress Log
 
-**Always append, never replace** `issues/progress-issue-{ISSUE_NUMBER}.txt`:
+**Always append, never replace** `issues/{ISSUE_NUMBER}/progress.txt`:
 
 ```
 ## [ISO datetime] - [Story ID]: [Story Title]
@@ -150,7 +150,7 @@ cat issues/prd-issue-{ISSUE_NUMBER}.json | python3 -m json.tool > /dev/null
 
 ### Step 9: Update Codebase Patterns (If Applicable)
 
-If you discovered a **reusable pattern** that future iterations should know, add it to the `## Codebase Patterns` section at the **top** of `issues/progress-issue-{ISSUE_NUMBER}.txt`.
+If you discovered a **reusable pattern** that future iterations should know, add it to the `## Codebase Patterns` section at the **top** of `issues/{ISSUE_NUMBER}/progress.txt`.
 
 Create the section if it doesn't exist yet:
 

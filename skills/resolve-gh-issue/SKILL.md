@@ -27,12 +27,12 @@ Extract `ISSUE_NUMBER` from whichever format is given.
 
 1. **Check current branch**: Run `git branch --show-current`. If it matches `issue/{ISSUE_NUMBER}-*`, work may already be in progress.
 2. **Check for existing task files**:
-   - `issues/prd-issue-{ISSUE_NUMBER}.md`
-   - `issues/prd-issue-{ISSUE_NUMBER}.json`
-   - `issues/progress-issue-{ISSUE_NUMBER}.txt`
-3. **If files exist**, read `issues/prd-issue-{ISSUE_NUMBER}.json` and check:
+   - `issues/{ISSUE_NUMBER}/prd.md`
+   - `issues/{ISSUE_NUMBER}/tasks.json`
+   - `issues/{ISSUE_NUMBER}/progress.txt`
+3. **If files exist**, read `issues/{ISSUE_NUMBER}/tasks.json` and check:
    - How many user stories have `"passes": true` vs `"passes": false`?
-   - Read `issues/progress-issue-{ISSUE_NUMBER}.txt` to understand what was done
+   - Read `issues/{ISSUE_NUMBER}/progress.txt` to understand what was done
    - Cross-check completed stories against actual git commits (`git log --oneline`)
 4. **If in-progress work is detected**, report the status to the user:
 ```
@@ -50,8 +50,8 @@ C. Cancel
 Wait for the user's choice before proceeding. **Never silently overwrite existing work.**
 
 If the user chooses **B (Start fresh)**:
-- Archive existing files: `mkdir -p issues/archive/issue-{ISSUE_NUMBER} && cp -f issues/prd-issue-{ISSUE_NUMBER}.md issues/prd-issue-{ISSUE_NUMBER}.json issues/progress-issue-{ISSUE_NUMBER}.txt issues/archive/issue-{ISSUE_NUMBER}/ 2>/dev/null || true`
-- Delete originals: `rm -f issues/prd-issue-{ISSUE_NUMBER}.md issues/prd-issue-{ISSUE_NUMBER}.json issues/progress-issue-{ISSUE_NUMBER}.txt`
+- Archive existing files: `mkdir -p issues/{ISSUE_NUMBER}/archive && cp -f issues/{ISSUE_NUMBER}/prd.md issues/{ISSUE_NUMBER}/tasks.json issues/{ISSUE_NUMBER}/progress.txt issues/{ISSUE_NUMBER}/archive/ 2>/dev/null || true`
+- Delete originals: `rm -f issues/{ISSUE_NUMBER}/prd.md issues/{ISSUE_NUMBER}/tasks.json issues/{ISSUE_NUMBER}/progress.txt`
 - Proceed from Phase 1
 
 If the user chooses **A (Continue)**:
@@ -100,7 +100,7 @@ Pass as context:
 - `ISSUE_NUMBER`
 - `ISSUE_ANALYSIS` (from Phase 1)
 - `BRANCH_NAME`
-- Output path: `issues/prd-issue-{ISSUE_NUMBER}.md`
+- Output path: `issues/{ISSUE_NUMBER}/prd.md`
 
 The skill will handle clarifying questions with the user if the issue is ambiguous.
 **Do NOT implement anything yet. Wait for the skill to complete.**
@@ -110,15 +110,16 @@ The skill will handle clarifying questions with the user if the issue is ambiguo
 **Use the Skill tool to invoke: `convert-prd-to-json`**
 
 Pass as context:
-- Input path: `issues/prd-issue-{ISSUE_NUMBER}.md`
-- Output path: `issues/prd-issue-{ISSUE_NUMBER}.json`
+- Input path: `issues/{ISSUE_NUMBER}/prd.md`
+- Output path: `issues/{ISSUE_NUMBER}/tasks.json`
 - Validation requirements: stories ordered by dependency, each with "Typecheck passes", UI stories with browser verification
 
 Store the parsed user stories list as `TASK_PLAN`.
 
 ### Step 3c — Confirm Before Proceeding
 
-Present the task plan to the user and **ask for explicit confirmation**:
+Present the task plan to the user and **ask how they want to proceed**:
+
 ```
 📋 Task plan created for issue #{ISSUE_NUMBER}:
 
@@ -128,15 +129,44 @@ User stories ({N} total):
   US-002: [title] — {N} acceptance criteria
   ...
 
-Ready to start implementing. This will:
-- Implement each story one at a time
-- Run quality checks after each story  
-- Commit code as each story passes
+How would you like to proceed?
 
-Proceed with implementation? (yes/no)
+A. **Execute now** — implement all stories interactively in this session
+B. **Save for later** — I'll show you how to resume when you're ready
+
+Choose A or B:
 ```
 
-**Wait for explicit "yes" before continuing. Do not proceed if the user says no or is unclear.**
+**Wait for explicit choice. Do not proceed if the user is unclear.**
+
+#### If user chooses A:
+Proceed to Phase 4 as normal (invoke execute-tasks skill).
+
+#### If user chooses B:
+Present both resumption options, then **stop** — do NOT invoke execute-tasks:
+
+```
+✅ PRD and task plan saved. When you're ready:
+
+**Option 1 — Resume interactively (default)**
+Run the skill again — it will detect existing work and continue:
+  "resolve issue #{ISSUE_NUMBER}"
+  or
+  "execute tasks for issue #{ISSUE_NUMBER}"
+
+**Option 2 — Run autonomously with Ralph (advanced)**
+Ralph spawns fresh AI instances per story in an unattended loop:
+  ./scripts/ralph/ralph.sh --issue {ISSUE_NUMBER} 15
+
+Pre-conditions for Ralph:
+  - Branch must exist: issue/{ISSUE_NUMBER}-{slug}
+  - Artifacts must exist in: issues/{ISSUE_NUMBER}/
+
+Artifacts saved:
+  - issues/{ISSUE_NUMBER}/prd.md
+  - issues/{ISSUE_NUMBER}/tasks.json
+  - Branch: issue/{ISSUE_NUMBER}-{slug}
+```
 
 ---
 
@@ -146,8 +176,8 @@ Proceed with implementation? (yes/no)
 
 Pass as context:
 - `ISSUE_NUMBER`
-- `TASK_PLAN` path: `issues/prd-issue-{ISSUE_NUMBER}.json`
-- `PROGRESS_LOG` path: `issues/progress-issue-{ISSUE_NUMBER}.txt`
+- `TASK_PLAN` path: `issues/{ISSUE_NUMBER}/tasks.json`
+- `PROGRESS_LOG` path: `issues/{ISSUE_NUMBER}/progress.txt`
 - `BRANCH_NAME`
 
 Only enter this phase after receiving explicit confirmation from the user (or if the user chose "Continue" in Phase 0).
@@ -171,11 +201,11 @@ When `execute-tasks` reports completion, output:
 ## File Structure
 ```
 issues/
-├── prd-issue-{ISSUE_NUMBER}.md       # PRD (human-readable)
-├── prd-issue-{ISSUE_NUMBER}.json     # Task plan (machine-readable)
-├── progress-issue-{ISSUE_NUMBER}.txt   # Progress log
-└── archive/
-    └── issue-{ISSUE_NUMBER}/           # Archived previous runs
+└── {ISSUE_NUMBER}/
+    ├── prd.md           # PRD (human-readable)
+    ├── tasks.json       # Task plan (machine-readable)
+    ├── progress.txt     # Progress log
+    └── archive/         # Archived previous runs
 ```
 
 ---
@@ -186,5 +216,7 @@ issues/
 - **Never overwrite existing in-progress work without asking**
 - **One story per iteration** — don't batch multiple stories
 - **All commits must pass quality checks** — no broken code
-- **Always read `issues/progress-issue-{ISSUE_NUMBER}.txt` before entering Phase 4** to understand what was done and what patterns were discovered
+- **Always read `issues/{ISSUE_NUMBER}/progress.txt` before entering Phase 4** to understand what was done and what patterns were discovered
 - **Each skill invocation is a delegation** — wait for the skill to fully complete before moving to the next phase
+- **Never execute Ralph automatically** — it is an opt-in advanced option shown only as information
+- **Always present both resumption options when the user chooses B**

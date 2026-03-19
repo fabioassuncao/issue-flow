@@ -13,6 +13,29 @@ Personal collection of [Agent Skills](https://agentskills.io) for GitHub issue m
 | [`convert-prd-to-json`](skills/convert-prd-to-json/) | Converts a PRD markdown file into a structured JSON task plan for autonomous execution. |
 | [`execute-tasks`](skills/execute-tasks/) | Iteratively implements user stories from a JSON task plan with quality checks and commits. |
 
+## Ralph (Advanced)
+
+[Ralph](scripts/ralph/) is an autonomous AI agent loop that can execute task plans unattended. When resolving an issue, choose **option B** at the confirmation step to save the plan and run it later with Ralph:
+
+```bash
+./scripts/ralph/ralph.sh --issue 42 15
+```
+
+See the [Ralph README](scripts/ralph/) for details.
+
+## File Structure
+
+All artifacts for a given issue are stored under `issues/{ISSUE_NUMBER}/`:
+
+```
+issues/
+└── 42/
+    ├── prd.md           # PRD (human-readable)
+    ├── tasks.json       # Task plan (machine-readable)
+    ├── progress.txt     # Progress log
+    └── archive/         # Archived previous runs
+```
+
 ## Quick Start
 
 ```
