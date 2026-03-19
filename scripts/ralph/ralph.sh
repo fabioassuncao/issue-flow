@@ -120,6 +120,43 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Validate required dependencies
+_missing=()
+for _dep in jq git claude; do
+  if ! command -v "$_dep" >/dev/null 2>&1; then
+    _missing+=("$_dep")
+  fi
+done
+
+if [ "${#_missing[@]}" -gt 0 ]; then
+  echo "Error: the following required tools are not installed:"
+  _is_macos=0
+  [ "$(uname -s)" = "Darwin" ] && _is_macos=1
+
+  for _dep in "${_missing[@]}"; do
+    case "$_dep" in
+      jq)
+        if [ "$_is_macos" -eq 1 ]; then
+          echo "  - jq  (install with: brew install jq)"
+        else
+          echo "  - jq  (install with: sudo apt-get install jq)"
+        fi
+        ;;
+      git)
+        if [ "$_is_macos" -eq 1 ]; then
+          echo "  - git  (install with: brew install git)"
+        else
+          echo "  - git  (install with: sudo apt-get install git)"
+        fi
+        ;;
+      claude)
+        echo "  - claude  (install with: npm install -g @anthropic-ai/claude-code)"
+        ;;
+    esac
+  done
+  exit 1
+fi
+
 # Try to resolve SCRIPT_DIR from BASH_SOURCE
 SCRIPT_DIR=""
 if [ -n "${BASH_SOURCE[0]:-}" ] && [ "${BASH_SOURCE[0]}" != "bash" ]; then
@@ -135,6 +172,16 @@ PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 if [ -n "$SCRIPT_DIR" ] && [ -f "$SCRIPT_DIR/prompt.md" ]; then
   PROMPT_FILE="$SCRIPT_DIR/prompt.md"
 else
+  if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
+    echo "Error: curl or wget is required to download prompt.md in remote mode."
+    if [ "$(uname -s)" = "Darwin" ]; then
+      echo "  Install with: brew install curl"
+    else
+      echo "  Install with: sudo apt-get install curl"
+    fi
+    exit 1
+  fi
+
   echo "prompt.md not found locally, downloading remote version..."
   RALPH_TMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/ralph.XXXXXX")
   REMOTE_URL="https://raw.githubusercontent.com/fabioassuncao/agent-skills/main/scripts/ralph/prompt.md"
@@ -143,9 +190,6 @@ else
     curl -fsSL "$REMOTE_URL" -o "$RALPH_TMP_DIR/prompt.md"
   elif command -v wget >/dev/null 2>&1; then
     wget -qO "$RALPH_TMP_DIR/prompt.md" "$REMOTE_URL"
-  else
-    echo "Error: curl or wget is required to download prompt.md"
-    exit 1
   fi
 
   if [ ! -s "$RALPH_TMP_DIR/prompt.md" ]; then
