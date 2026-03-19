@@ -7,13 +7,14 @@ You are an autonomous coding agent working on a software project.
 1. Read the PRD at `__PRD_FILE__`
 2. Read the progress log at `__PROGRESS_FILE__` (check Codebase Patterns section first)
 3. Check you're on the correct branch from PRD `branchName`. If not, check it out or create from main.
-4. Pick the **highest priority** user story where `passes: false`
-5. Implement that single user story
-6. Run quality checks (e.g., typecheck, lint, test - use whatever your project requires)
-7. Update CLAUDE.md files if you discover reusable patterns (see below)
-8. If checks pass, commit ALL changes with message: `feat: [Story ID] - [Story Title]`
-9. Update the PRD to set `passes: true` for the completed story
-10. Append your progress to `__PROGRESS_FILE__`
+4. Treat the issue as unresolved unless **every** `userStories[].passes` value is `true`
+5. Pick the **highest priority** user story where `passes: false`
+6. Implement that single user story
+7. Run quality checks (e.g., typecheck, lint, test - use whatever your project requires)
+8. Update CLAUDE.md files if you discover reusable patterns (see below)
+9. If checks pass, commit ALL changes with message: `feat: [Story ID] - [Story Title]`
+10. Update the PRD to set `passes: true` for the completed story
+11. Append your progress to `__PROGRESS_FILE__`
 
 ## Progress Report Format
 
@@ -91,10 +92,17 @@ If no browser tools are available, note in your progress report that manual brow
 
 After completing a user story, check if ALL stories have `passes: true`.
 
-If ALL stories are complete and passing, reply with:
+If ALL stories are complete and passing, first update the task plan metadata:
+- Set `issueStatus` to `completed`
+- Set `completedAt` to the current ISO timestamp
+- Set `lastAttemptAt` to the current ISO timestamp
+- Clear `lastError`
+
+Then reply with:
 <promise>COMPLETE</promise>
 
 If there are still stories with `passes: false`, end your response normally (another iteration will pick up the next story).
+If you need to stop for user guidance or another non-transient blocker, record it in top-level `lastError` and do not clear it.
 
 ## Important
 

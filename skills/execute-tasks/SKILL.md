@@ -17,6 +17,7 @@ You are an autonomous coding agent. Work on one user story at a time, commit it,
 ## Before Starting Each Iteration
 
 1. **Read the task plan**: `issues/{ISSUE_NUMBER}/tasks.json`
+   - Check the top-level `issueStatus`, `completedAt`, `lastAttemptAt`, and `lastError`
 2. **Read the progress log**: `issues/{ISSUE_NUMBER}/progress.txt`
    - Pay special attention to the `## Codebase Patterns` section at the top
    - These are hard-won learnings from previous iterations — don't repeat mistakes
@@ -120,6 +121,10 @@ Example: `feat: US-002 - Display status badge on task cards`
 Update `issues/{ISSUE_NUMBER}/tasks.json`:
 - Set `"passes": true` for the completed story
 - Add any relevant notes to `"notes"` field (e.g., "Found that X pattern was needed")
+- Set `"issueStatus": "in_progress"` if any stories are still pending
+- Set `"completedAt": null` until all stories pass
+- Set `"lastAttemptAt"` to the current ISO timestamp
+- Clear `"lastError"` after a successful, unblocked iteration
 
 ```bash
 # Verify the JSON is still valid after editing
@@ -200,6 +205,11 @@ The first time you write to the progress log, create it with this header:
 After completing each story, check: **are all stories now `"passes": true`?**
 
 **If YES — all stories complete:**
+- Update `issues/{ISSUE_NUMBER}/tasks.json`:
+  - Set `"issueStatus": "completed"`
+  - Set `"completedAt"` to the current ISO timestamp
+  - Set `"lastAttemptAt"` to the current ISO timestamp
+  - Set `"lastError"` to `null`
 ```
 <promise>COMPLETE</promise>
 ```
@@ -227,7 +237,8 @@ End your response normally. The next invocation will pick up the next story.
 If quality checks fail after multiple attempts:
 1. Document what you tried in the progress log
 2. Set `"notes"` in the JSON to explain the blocker
-3. Ask the user for guidance before proceeding
+3. Record the failure in top-level `"lastError"` with timestamp and a short category
+4. Preserve that `"lastError"` while blocked and ask the user for guidance before proceeding
 
 If you realize the story is fundamentally different from what was planned:
 1. Stop and ask the user before making large changes

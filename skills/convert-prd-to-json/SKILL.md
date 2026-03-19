@@ -25,6 +25,10 @@ Read `issues/{ISSUE_NUMBER}/prd.md` and convert it to `issues/{ISSUE_NUMBER}/tas
   "issueUrl": "https://github.com/{owner}/{repo}/issues/{ISSUE_NUMBER}",
   "branchName": "issue/{ISSUE_NUMBER}-{slug}",
   "description": "[Feature description from PRD intro]",
+  "issueStatus": "pending",
+  "completedAt": null,
+  "lastAttemptAt": null,
+  "lastError": null,
   "userStories": [
     {
       "id": "US-001",
@@ -54,6 +58,7 @@ Read `issues/{ISSUE_NUMBER}/prd.md` and convert it to `issues/{ISSUE_NUMBER}/tas
 5. **branchName**: Use the branch created in Phase 2 of the main skill (current branch name)
 6. **Always verify**: Every story has "Typecheck passes" as the last acceptance criterion
 7. **Always verify**: UI stories have "Verify in browser using playwright-cli if available; otherwise use the playwright MCP/skill" as acceptance criterion
+8. **Initialize issue execution state**: `"issueStatus": "pending"`, `"completedAt": null`, `"lastAttemptAt": null`, `"lastError": null`
 
 ---
 
@@ -150,6 +155,8 @@ Estimated complexity: Medium
 
 - [ ] All stories have `"passes": false`
 - [ ] All stories have `"notes": ""`
+- [ ] `issueStatus` is `"pending"`
+- [ ] `completedAt`, `lastAttemptAt`, and `lastError` are `null`
 - [ ] Stories ordered by dependency (schema → backend → UI)
 - [ ] Every story has "Typecheck passes" as a criterion
 - [ ] UI stories have browser verification criterion

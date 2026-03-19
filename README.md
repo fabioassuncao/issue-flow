@@ -18,7 +18,7 @@ Personal collection of [Agent Skills](https://agentskills.io) for GitHub issue m
 [Ralph](scripts/ralph/) is an autonomous AI agent loop that can execute task plans unattended. When resolving an issue, choose **option B** at the confirmation step to save the plan and run it later with Ralph:
 
 ```bash
-./scripts/ralph/ralph.sh --issue 42 15
+./scripts/ralph/ralph.sh --issue 42
 ```
 
 See the [Ralph README](scripts/ralph/) for details.
@@ -31,7 +31,7 @@ All artifacts for a given issue are stored under `issues/{ISSUE_NUMBER}/`:
 issues/
 └── 42/
     ├── prd.md           # PRD (human-readable)
-    ├── tasks.json       # Task plan (machine-readable)
+    ├── tasks.json       # Task plan + issue execution state
     ├── progress.txt     # Progress log
     └── archive/         # Archived previous runs
 ```

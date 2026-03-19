@@ -31,6 +31,7 @@ Extract `ISSUE_NUMBER` from whichever format is given.
    - `issues/{ISSUE_NUMBER}/tasks.json`
    - `issues/{ISSUE_NUMBER}/progress.txt`
 3. **If files exist**, read `issues/{ISSUE_NUMBER}/tasks.json` and check:
+   - What is the top-level `issueStatus`?
    - How many user stories have `"passes": true` vs `"passes": false`?
    - Read `issues/{ISSUE_NUMBER}/progress.txt` to understand what was done
    - Cross-check completed stories against actual git commits (`git log --oneline`)
@@ -38,6 +39,7 @@ Extract `ISSUE_NUMBER` from whichever format is given.
 ```
 Found existing work for issue #{ISSUE_NUMBER}:
 - Branch: issue/{ISSUE_NUMBER}-{slug}
+- Issue status: pending | in_progress | completed
 - Progress: X of Y user stories completed
 - Last commit: [commit message]
 
