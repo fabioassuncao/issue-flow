@@ -1,4 +1,4 @@
-# Agent Skills
+# Issue Flow
 
 A collection of [agent skills](https://agentskills.io) for turning GitHub issues into executable work: create well-scoped issues, analyze them, generate PRDs, convert plans into structured task graphs, and implement them iteratively with quality checks or autonomous execution via Ralph.
 
