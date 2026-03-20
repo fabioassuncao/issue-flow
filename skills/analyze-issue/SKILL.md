@@ -70,6 +70,6 @@ Generate a structured analysis with these sections:
 
 ## Output
 
-Print the analysis to the user and confirm before proceeding to PRD generation.
+Print the analysis to the user.
 
-If there are critical ambiguities, ask the user to clarify before proceeding. Keep it to 1-3 questions maximum.
+If there are critical ambiguities, list them in the Ambiguities section of the output. When invoked from a pipeline (e.g., resolve-gh-issue), do NOT stop to ask — flag them in the output and let the orchestrator decide whether to ask the user. When invoked standalone, you may ask up to 1-3 clarifying questions.

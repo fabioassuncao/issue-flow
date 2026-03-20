@@ -228,7 +228,10 @@ Ready to open a PR.
 ```
 
 **If NO — stories remain:**
-End your response normally. The next invocation will pick up the next story.
+**Loop back to Step 1** and immediately pick the next pending story.
+Continue the loop until all stories pass or you encounter an error
+that triggers the Error Recovery procedure above.
+Do NOT stop or end your response between stories.
 
 ---
 

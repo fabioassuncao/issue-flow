@@ -9,6 +9,15 @@ allowed-tools: Bash Read Write Skill(analyze-issue) Skill(generate-prd) Skill(co
 
 You are an autonomous agent responsible for resolving a GitHub issue from start to finish.
 
+## Orchestration Rules
+
+This skill orchestrates a pipeline of sub-skills. Follow these rules:
+- **Proceed automatically** between phases when there are no ambiguities or decisions needed.
+- **Stop only when** there is a genuine decision the user must make (ambiguity, error, or the pre-execution choice in Step 3c).
+- When stopping, **always present options with a recommended choice** so the user can decide quickly.
+- Do NOT ask "shall I proceed?" or "ready to continue?" between phases — just proceed.
+- Each sub-skill may surface ambiguities. If there are none, move to the next phase immediately.
+
 ---
 
 ## Entry Point
@@ -71,6 +80,16 @@ Pass as context:
 
 Store the result in memory as `ISSUE_ANALYSIS` — you will pass it to subsequent skills.
 
+If the analysis reveals no critical ambiguities, **immediately proceed to Phase 2**.
+If there are ambiguities:
+1. Present them to the user with recommended answers.
+2. After the user responds, **merge those clarifications back into `ISSUE_ANALYSIS` before proceeding**.
+3. Update the relevant sections of `ISSUE_ANALYSIS` so downstream skills see the clarified intent:
+   - Add a `User Clarifications` section summarizing the user's answers
+   - Rewrite any affected summary, scope, or technical notes to reflect those answers
+   - Remove resolved items from `Ambiguities`, leaving only anything still genuinely unresolved
+4. Carry this revised `ISSUE_ANALYSIS` forward to Phase 2 and Phase 3.
+
 ---
 
 ## Phase 2: Create Branch
@@ -90,6 +109,8 @@ Inform the user: `Created branch: issue/{ISSUE_NUMBER}-{slug}`
 
 Store `BRANCH_NAME` — you will reference it in later phases.
 
+**→ Immediately proceed to Phase 3.**
+
 ---
 
 ## Phase 3: Generate PRD and Task Plan
@@ -100,12 +121,14 @@ Store `BRANCH_NAME` — you will reference it in later phases.
 
 Pass as context:
 - `ISSUE_NUMBER`
-- `ISSUE_ANALYSIS` (from Phase 1)
+- `ISSUE_ANALYSIS` (the revised Phase 1 analysis, including any merged user clarifications)
 - `BRANCH_NAME`
 - Output path: `issues/{ISSUE_NUMBER}/prd.md`
 
-The skill will handle clarifying questions with the user if the issue is ambiguous.
-**Do NOT implement anything yet. Wait for the skill to complete.**
+The skill may ask follow-up questions only for ambiguities that remain unresolved after Phase 1.
+**Do NOT implement anything yet. The PRD skill handles this step entirely.**
+
+After the PRD skill completes and `issues/{ISSUE_NUMBER}/prd.md` exists, **immediately proceed to Step 3b**, even if the PRD still contains explicitly documented open questions that do not block planning.
 
 ### Step 3b — Convert PRD to JSON
 
@@ -118,12 +141,14 @@ Pass as context:
 
 Store the parsed user stories list as `TASK_PLAN`.
 
-### Step 3c — Confirm Before Proceeding
+**→ Immediately proceed to Step 3c.**
 
-Present the task plan to the user and **ask how they want to proceed**:
+### Step 3c — Confirm Before Development Starts
+
+Present the task plan summary and ask only whether the user wants to start development now:
 
 ```
-📋 Task plan created for issue #{ISSUE_NUMBER}:
+📋 Task plan for issue #{ISSUE_NUMBER}:
 
 Branch: issue/{ISSUE_NUMBER}-{slug}
 User stories ({N} total):
@@ -131,43 +156,36 @@ User stories ({N} total):
   US-002: [title] — {N} acceptance criteria
   ...
 
-How would you like to proceed?
+Do you want to proceed with development now?
 
-A. **Execute now** — implement all stories interactively in this session
-B. **Save for later** — I'll show you how to resume when you're ready
+A. **Proceed now** (recommended) — invoke `execute-tasks` and start implementing the stories in this session
+B. **Stop here for now** — keep the generated artifacts and end the flow without starting development
 
 Choose A or B:
 ```
 
-**Wait for explicit choice. Do not proceed if the user is unclear.**
+Wait for the user's choice.
 
 #### If user chooses A:
-Proceed to Phase 4 as normal (invoke execute-tasks skill).
+Proceed to Phase 4.
 
 #### If user chooses B:
-Present both resumption options, then **stop** — do NOT invoke execute-tasks:
+Preserve the generated artifacts and **stop** — do NOT invoke `execute-tasks`. Tell the user they can resume later manually with `resolve-gh-issue` or `execute-tasks`, or optionally run Ralph on their own:
 
 ```
-✅ PRD and task plan saved. When you're ready:
+✅ Planning artifacts saved. Development has not started.
 
-**Option 1 — Resume interactively (default)**
-Run the skill again — it will detect existing work and continue:
-  "resolve issue #{ISSUE_NUMBER}"
-  or
-  "execute tasks for issue #{ISSUE_NUMBER}"
-
-**Option 2 — Run autonomously with Ralph (advanced)**
-Ralph spawns fresh AI instances per story in an unattended loop:
-  ./scripts/ralph/ralph.sh --issue {ISSUE_NUMBER} 15
-
-Pre-conditions for Ralph:
-  - Branch must exist: issue/{ISSUE_NUMBER}-{slug}
-  - Artifacts must exist in: issues/{ISSUE_NUMBER}/
-
-Artifacts saved:
+Artifacts kept:
   - issues/{ISSUE_NUMBER}/prd.md
   - issues/{ISSUE_NUMBER}/tasks.json
   - Branch: issue/{ISSUE_NUMBER}-{slug}
+
+You can resume later by:
+  - Running `resolve-gh-issue` again for issue #{ISSUE_NUMBER}
+  - Running `execute-tasks` directly for issue #{ISSUE_NUMBER}
+
+Optional autonomous path:
+  ./scripts/ralph/ralph.sh --issue {ISSUE_NUMBER} 15
 ```
 
 ---
@@ -182,7 +200,7 @@ Pass as context:
 - `PROGRESS_LOG` path: `issues/{ISSUE_NUMBER}/progress.txt`
 - `BRANCH_NAME`
 
-Only enter this phase after receiving explicit confirmation from the user (or if the user chose "Continue" in Phase 0).
+Enter this phase after the user chose "Execute now" in Step 3c, or "Continue" in Phase 0.
 
 The `execute-tasks` skill will run its own loop:
 1. Pick the highest-priority story where `passes: false`
@@ -214,11 +232,12 @@ issues/
 
 ## Important Rules
 
-- **Never proceed past Phase 3c without explicit user confirmation**
+- **Proceed automatically between phases unless a genuine decision is needed**
+- **When stopping for a decision, always present options with a recommended choice**
 - **Never overwrite existing in-progress work without asking**
 - **One story per iteration** — don't batch multiple stories
 - **All commits must pass quality checks** — no broken code
 - **Always read `issues/{ISSUE_NUMBER}/progress.txt` before entering Phase 4** to understand what was done and what patterns were discovered
 - **Each skill invocation is a delegation** — wait for the skill to fully complete before moving to the next phase
-- **Never execute Ralph automatically** — it is an opt-in advanced option shown only as information
-- **Always present both resumption options when the user chooses B**
+- **Never execute Ralph automatically** — it is an opt-in advanced option shown only as information after the user decides not to start development
+- **If the user chooses not to proceed in Step 3c, stop cleanly and preserve all generated artifacts**
