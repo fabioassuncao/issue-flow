@@ -157,7 +157,7 @@ Run Ralph only after the planning pipeline is finished. In the normal flow, that
 ./scripts/ralph/ralph.sh --issue 42
 
 # Remote (from any project — no clone needed)
-curl -sSL https://raw.githubusercontent.com/fabioassuncao/agent-skills/main/scripts/ralph/ralph.sh | bash -s -- --issue 42
+curl -sSL https://raw.githubusercontent.com/fabioassuncao/issue-flow/main/scripts/ralph/ralph.sh | bash -s -- --issue 42
 ```
 
 Useful options:
@@ -206,28 +206,28 @@ See the [`resolve-issue` README](skills/resolve-issue/) for the complete pipelin
 
 ```bash
 # 1. Add the marketplace
-/plugin marketplace add fabioassuncao/agent-skills
+/plugin marketplace add fabioassuncao/issue-flow
 
 # 2. Install the plugin
-/plugin install agent-skills@agent-skills-marketplace
+/plugin install issue-flow@issue-flow-marketplace
 ```
 
-Once installed, skills are namespaced under `agent-skills:` (e.g., `/agent-skills:resolve-issue`).
+Once installed, skills are namespaced under `issue-flow:` (e.g., `/issue-flow:resolve-issue`).
 
 To test locally during development:
 
 ```bash
-claude --plugin-dir ./agent-skills
+claude --plugin-dir ./issue-flow
 ```
 
 ### Using [skills.sh](https://skills.sh/)
 
 ```bash
 # GitHub shorthand
-npx skills add fabioassuncao/agent-skills
+npx skills add fabioassuncao/issue-flow
 
 # A specific skill only
-npx skills add fabioassuncao/agent-skills --skill generate-issue
+npx skills add fabioassuncao/issue-flow --skill generate-issue
 ```
 
 ### Manual

@@ -179,7 +179,7 @@ else
 
   echo "prompt.md not found locally, downloading remote version..."
   RALPH_TMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/ralph.XXXXXX")
-  REMOTE_URL="https://raw.githubusercontent.com/fabioassuncao/agent-skills/main/scripts/ralph/prompt.md"
+  REMOTE_URL="https://raw.githubusercontent.com/fabioassuncao/issue-flow/main/scripts/ralph/prompt.md"
 
   if command -v curl >/dev/null 2>&1; then
     curl -fsSL "$REMOTE_URL" -o "$RALPH_TMP_DIR/prompt.md"

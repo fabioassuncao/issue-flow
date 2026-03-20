@@ -65,10 +65,10 @@ Run Ralph in any project without cloning this repository. The script automatical
 
 ```bash
 # Show help
-curl -sSL https://raw.githubusercontent.com/fabioassuncao/agent-skills/main/scripts/ralph/ralph.sh | bash -s -- --help
+curl -sSL https://raw.githubusercontent.com/fabioassuncao/issue-flow/main/scripts/ralph/ralph.sh | bash -s -- --help
 
 # Run issue #42
-curl -sSL https://raw.githubusercontent.com/fabioassuncao/agent-skills/main/scripts/ralph/ralph.sh | bash -s -- --issue 42
+curl -sSL https://raw.githubusercontent.com/fabioassuncao/issue-flow/main/scripts/ralph/ralph.sh | bash -s -- --issue 42
 ```
 
 In remote mode, standalone artifacts (`prd.json`, `progress.txt`) default to the git project root instead of `scripts/ralph/`.

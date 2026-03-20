@@ -1,5 +1,5 @@
 {
-  "name": "agent-skills-marketplace",
+  "name": "issue-flow-marketplace",
   "owner": {
     "name": "fabioassuncao"
   },
@@ -9,7 +9,7 @@
   },
   "plugins": [
     {
-      "name": "agent-skills",
+      "name": "issue-flow",
       "source": "./",
       "description": "End-to-end GitHub issue resolution with architect-quality issue creation, PRD generation, task planning, and autonomous implementation",
       "version": "1.0.0",
