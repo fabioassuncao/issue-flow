@@ -326,6 +326,71 @@ print_iteration_header() {
   echo ""
 }
 
+# --- Summary Utilities ---
+
+format_duration() {
+  local total_seconds="$1"
+  local mins=$((total_seconds / 60))
+  local secs=$((total_seconds % 60))
+
+  if [ "$mins" -gt 0 ]; then
+    printf '%dm %ds' "$mins" "$secs"
+  else
+    printf '%ds' "$secs"
+  fi
+}
+
+print_summary_box() {
+  local status="$1"
+  local iterations="$2"
+  local retries="$3"
+  local extra_info="${4:-}"
+
+  local elapsed=$(( SECONDS - RALPH_START_SECONDS ))
+  local duration
+  duration=$(format_duration "$elapsed")
+
+  local stories_total stories_passing
+  stories_total=$(jq '.userStories | length' "$PRD_FILE" 2>/dev/null || echo "0")
+  stories_passing=$(jq '[.userStories[] | select(.passes == true)] | length' "$PRD_FILE" 2>/dev/null || echo "0")
+
+  local status_icon status_label
+  case "$status" in
+    success)
+      status_icon="$ICON_SUCCESS"
+      status_label="Completed"
+      ;;
+    incomplete)
+      status_icon="$ICON_WARN"
+      status_label="Incomplete"
+      ;;
+    failed)
+      status_icon="$ICON_FAIL"
+      status_label="Failed"
+      ;;
+  esac
+
+  local end_icon="$ICON_END"
+  local box_lines=()
+  box_lines+=("${end_icon} Ralph Summary")
+  box_lines+=("---")
+  box_lines+=("Status:      ${status_icon} ${status_label}")
+  box_lines+=("Stories:     ${stories_passing}/${stories_total} passing")
+  box_lines+=("Iterations:  ${iterations}")
+  box_lines+=("Duration:    ${duration}")
+  box_lines+=("Retries:     ${retries}")
+
+  if [ -n "$extra_info" ]; then
+    box_lines+=("---")
+    box_lines+=("$extra_info")
+  fi
+
+  echo ""
+  print_box "${box_lines[@]}"
+}
+
+# --- End Summary Utilities ---
+
 # --- End Progress Display Utilities ---
 
 # --- End Box Drawing Utilities ---
@@ -709,8 +774,12 @@ fi
 
 print_startup_header
 
+# Record execution start time for duration tracking
+RALPH_START_SECONDS=$SECONDS
+
 i=0
 retry_count=0
+total_retry_count=0
 while true; do
   iteration_started_at=""
 
@@ -744,11 +813,11 @@ while true; do
 
     if is_transient_claude_failure "$CLAUDE_EXIT" "$OUTPUT"; then
       retry_count=$((retry_count + 1))
+      total_retry_count=$((total_retry_count + 1))
       set_last_error "transient_claude_failure" "$ERROR_MESSAGE"
 
       if [ "$RETRY_FOREVER" -ne 1 ] && [ "$retry_count" -gt "$RETRY_LIMIT" ]; then
-        echo ""
-        print_error "Claude CLI failed with a transient error on iteration $i and exceeded the retry limit ($RETRY_LIMIT)."
+        print_summary_box "failed" "$i" "$total_retry_count" "Exceeded retry limit ($RETRY_LIMIT) on transient errors"
         exit "$CLAUDE_EXIT"
       fi
 
@@ -762,8 +831,7 @@ while true; do
     fi
 
     set_last_error "fatal_claude_failure" "$ERROR_MESSAGE"
-    echo ""
-    print_error "Claude CLI failed on iteration $i with exit code $CLAUDE_EXIT."
+    print_summary_box "failed" "$i" "$total_retry_count" "Claude CLI failed with exit code $CLAUDE_EXIT"
     exit "$CLAUDE_EXIT"
   fi
 
@@ -774,13 +842,7 @@ while true; do
   if echo "$OUTPUT" | grep -q "<promise>COMPLETE</promise>"; then
     if all_stories_pass; then
       mark_issue_completed
-      echo ""
-      echo "Ralph completed all tasks!"
-      if [ -n "$MAX_ITERATIONS" ]; then
-        echo "Completed at iteration $i of $MAX_ITERATIONS"
-      else
-        echo "Completed at iteration $i"
-      fi
+      print_summary_box "success" "$i" "$total_retry_count"
       exit 0
     fi
 
@@ -793,7 +855,5 @@ while true; do
   sleep 2
 done
 
-echo ""
-echo "Ralph reached max iterations (${MAX_ITERATIONS}) without completing all tasks."
-echo "Check $PROGRESS_FILE for status."
+print_summary_box "incomplete" "$MAX_ITERATIONS" "$total_retry_count" "Reached max iterations without completing all tasks."
 exit 1
