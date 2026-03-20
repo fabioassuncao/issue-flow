@@ -1,0 +1,40 @@
+# Ralph Progress Log
+Started: qui 19 mar 2026 22:09:56 -03
+---
+
+## Codebase Patterns
+- Skills are pure markdown — no build tools or typecheck in this project
+- SKILL.md frontmatter uses `name`, `description`, `compatibility` fields with YAML `>` block for multiline description
+- Existing skills follow a numbered step workflow pattern (Step 0, Step 1, etc.)
+- Trigger phrases go in the `description` frontmatter field
+- `allowed-tools` frontmatter is optional (used by orchestration skills like resolve-issue)
+
+---
+
+## 2026-03-19 - US-001
+- Created `skills/create-pr/SKILL.md` with full frontmatter and 6-step prompt workflow
+- Files changed: `skills/create-pr/SKILL.md` (new)
+- **Learnings for future iterations:**
+  - This project has no package.json, no build tools — it's purely markdown/shell scripts
+  - Existing skills like `generate-issue` and `resolve-issue` are good templates for format/tone
+  - The `description` field in frontmatter is critical for skill triggering — include many trigger phrases
+---
+
+## 2026-03-19 - US-002
+- Created `skills/create-pr/README.md` with description, usage examples, trigger phrases, How It Works section, and Requirements section
+- Files changed: `skills/create-pr/README.md` (new)
+- **Learnings for future iterations:**
+  - README structure follows: intro paragraph → Usage (with trigger phrases) → How It Works (numbered steps) → Requirements
+  - resolve-issue and generate-issue READMEs are the canonical references for tone and structure
+  - No typecheck needed — project is pure markdown
+---
+
+## 2026-03-20 - US-003
+- Updated main `README.md` with three additions: create-pr row in skills table, dashed arrow in mermaid diagram, and step 5 collapsed section in walkthrough
+- Files changed: `README.md` (modified)
+- **Learnings for future iterations:**
+  - Mermaid dashed arrows use `-.->` syntax for optional/alternative paths
+  - Walkthrough sections use `<details><summary>` with numbered steps — new skills get the next number
+  - Skills table rows follow: `| [skill-name](skills/skill-name/) | Description. |`
+  - Always preserve existing content — only add, don't restructure
+---
