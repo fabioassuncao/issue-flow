@@ -5,7 +5,7 @@ description: >
   (issues/{N}/tasks.json) suitable for autonomous iterative execution. Use this skill
   when you have a PRD and need to convert it into a machine-readable task plan with ordered
   user stories, acceptance criteria, and dependency tracking. Triggers on: "convert prd to json",
-  "create task plan from prd", or when the resolve-gh-issue skill delegates task plan creation.
+  "create task plan from prd", or when the resolve-issue skill delegates task plan creation.
 ---
 
 # PRD → JSON Converter

@@ -6,8 +6,8 @@ Personal collection of [Agent Skills](https://agentskills.io) for GitHub issue m
 
 | Skill | Description |
 |-------|-------------|
-| [`generate-gh-issue`](skills/generate-gh-issue/) | Generates architect-quality GitHub issues from short instructions with duplicate detection and label management. |
-| [`resolve-gh-issue`](skills/resolve-gh-issue/) | Resolves a GitHub issue end-to-end: analysis, branch, PRD, task plan, and iterative implementation. Orchestrates all sub-skills. |
+| [`generate-issue`](skills/generate-issue/) | Generates architect-quality GitHub issues from short instructions with duplicate detection and label management. |
+| [`resolve-issue`](skills/resolve-issue/) | Resolves a GitHub issue end-to-end: analysis, branch, PRD, task plan, and iterative implementation. Orchestrates all sub-skills. |
 | [`analyze-issue`](skills/analyze-issue/) | Analyzes a GitHub issue to extract context, scope, affected areas, and complexity. |
 | [`generate-prd`](skills/generate-prd/) | Generates a structured PRD with user stories, acceptance criteria, and functional requirements. |
 | [`convert-prd-to-json`](skills/convert-prd-to-json/) | Converts a PRD markdown file into a structured JSON task plan for autonomous execution. |
@@ -17,9 +17,9 @@ Personal collection of [Agent Skills](https://agentskills.io) for GitHub issue m
 
 ```mermaid
 flowchart TD
-    A[Short instruction or bug report] --> B[generate-gh-issue]
+    A[Short instruction or bug report] --> B[generate-issue]
     B --> C[GitHub issue created]
-    C --> D[resolve-gh-issue]
+    C --> D[resolve-issue]
     D --> E{Existing work already detected?}
     E -- Yes --> E1[Continue or start fresh]
     E1 --> F[analyze-issue]
@@ -35,17 +35,17 @@ flowchart TD
     N -- No --> L
     N -- Yes --> O[Issue completed]
     J -- No --> P[Stop and keep artifacts]
-    P --> Q[Later: resume with resolve-gh-issue, execute-tasks, or optional ralph.sh]
+    P --> Q[Later: resume with resolve-issue, execute-tasks, or optional ralph.sh]
 ```
 
 ## Interactive Walkthrough
 
 <details>
-<summary><strong>1. Create the GitHub issue with <code>generate-gh-issue</code></strong></summary>
+<summary><strong>1. Create the GitHub issue with <code>generate-issue</code></strong></summary>
 
 The pipeline can start from a short natural-language request such as "create an issue for adding rate limiting to the API".
 
-`generate-gh-issue` then:
+`generate-issue` then:
 - inspects the repository and stack
 - expands the short request into a well-scoped technical issue
 - checks for duplicates
@@ -56,9 +56,9 @@ Output: a published GitHub issue that is ready to be planned and executed.
 </details>
 
 <details>
-<summary><strong>2. Plan the implementation with <code>resolve-gh-issue</code></strong></summary>
+<summary><strong>2. Plan the implementation with <code>resolve-issue</code></strong></summary>
 
-`resolve-gh-issue` is the orchestrator. It advances automatically through the planning pipeline:
+`resolve-issue` is the orchestrator. It advances automatically through the planning pipeline:
 
 1. check for existing work in `issues/{N}/`
 2. analyze the issue with [`analyze-issue`](skills/analyze-issue/)
@@ -72,7 +72,7 @@ At this point the planning phase is complete and the issue is ready for developm
 <details>
 <summary><strong>3. Decision point: start development now or stop with artifacts saved</strong></summary>
 
-After the PRD and JSON task plan are ready, `resolve-gh-issue` asks only one thing:
+After the PRD and JSON task plan are ready, `resolve-issue` asks only one thing:
 
 `Do you want to proceed with development now?`
 
@@ -90,7 +90,7 @@ This is the handoff point between planning and development.
 
 From the saved task plan, there are three ways to continue later:
 
-- run `resolve-gh-issue` again and let it resume
+- run `resolve-issue` again and let it resume
 - invoke [`execute-tasks`](skills/execute-tasks/) directly
 - run [`scripts/ralph/ralph.sh`](scripts/ralph/) for unattended autonomous execution
 
@@ -102,7 +102,7 @@ Both `execute-tasks` and Ralph consume the same planning artifacts. The differen
 
 ## Ralph (Advanced / Optional)
 
-[Ralph](scripts/ralph/) is not part of issue creation and not part of planning. Its role starts only after `resolve-gh-issue` has already created the branch and planning artifacts.
+[Ralph](scripts/ralph/) is not part of issue creation and not part of planning. Its role starts only after `resolve-issue` has already created the branch and planning artifacts.
 
 ### What Ralph does
 
@@ -135,7 +135,7 @@ If those artifacts do not already exist, the script stops with an error.
 
 Run Ralph only after the planning pipeline is finished. In the normal flow, that means:
 
-1. run `resolve-gh-issue` for the target issue
+1. run `resolve-issue` for the target issue
 2. let it complete analysis, branch creation, PRD generation, and JSON task-plan generation
 3. answer "no" when asked whether to proceed with development now, so the flow stops but preserves the artifacts
 4. verify these inputs exist:
@@ -193,7 +193,7 @@ Create an issue for adding rate limiting to the API
 Resolve issue #42
 ```
 
-See the [`resolve-gh-issue` README](skills/resolve-gh-issue/) for the complete pipeline documentation, or each skill's README for standalone usage.
+See the [`resolve-issue` README](skills/resolve-issue/) for the complete pipeline documentation, or each skill's README for standalone usage.
 
 ## Requirements
 
@@ -212,7 +212,7 @@ See the [`resolve-gh-issue` README](skills/resolve-gh-issue/) for the complete p
 /plugin install agent-skills@agent-skills-marketplace
 ```
 
-Once installed, skills are namespaced under `agent-skills:` (e.g., `/agent-skills:resolve-gh-issue`).
+Once installed, skills are namespaced under `agent-skills:` (e.g., `/agent-skills:resolve-issue`).
 
 To test locally during development:
 
@@ -227,7 +227,7 @@ claude --plugin-dir ./agent-skills
 npx skills add fabioassuncao/agent-skills
 
 # A specific skill only
-npx skills add fabioassuncao/agent-skills --skill generate-gh-issue
+npx skills add fabioassuncao/agent-skills --skill generate-issue
 ```
 
 ### Manual

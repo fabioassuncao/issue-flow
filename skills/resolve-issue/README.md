@@ -1,4 +1,4 @@
-# resolve-gh-issue
+# resolve-issue
 
 Resolves a GitHub issue end-to-end: analyzes it, creates a dedicated branch, produces a PRD, converts it to an executable task plan, and iteratively implements each user story with commits.
 

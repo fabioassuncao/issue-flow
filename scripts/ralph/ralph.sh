@@ -213,7 +213,7 @@ fi
 if [ ! -f "$PRD_FILE" ]; then
   echo "Error: PRD file not found at $PRD_FILE"
   if [ -n "$ISSUE_NUMBER" ]; then
-    echo "Have you run the resolve-gh-issue skill for issue #${ISSUE_NUMBER} first?"
+    echo "Have you run the resolve-issue skill for issue #${ISSUE_NUMBER} first?"
   fi
   exit 1
 fi

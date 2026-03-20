@@ -1,5 +1,5 @@
 ---
-name: generate-gh-issue
+name: generate-issue
 description: >
   Generates detailed, architect-quality GitHub issues from short instructions. Analyzes the project's
   actual stack, architecture, and codebase before writing. Detects duplicate issues with intelligent

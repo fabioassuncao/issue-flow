@@ -4,7 +4,7 @@ description: >
   Fetch and analyze a GitHub issue to extract context, scope, affected areas, and complexity
   before planning implementation. Use this skill when you need to understand a GitHub issue
   in depth before creating a PRD or task plan — e.g., when the user says "analyze issue #42",
-  "what does this issue involve", or when the resolve-gh-issue skill delegates analysis.
+  "what does this issue involve", or when the resolve-issue skill delegates analysis.
 compatibility: Requires gh CLI (https://cli.github.com/) and git
 ---
 
@@ -72,4 +72,4 @@ Generate a structured analysis with these sections:
 
 Print the analysis to the user.
 
-If there are critical ambiguities, list them in the Ambiguities section of the output. When invoked from a pipeline (e.g., resolve-gh-issue), do NOT stop to ask — flag them in the output and let the orchestrator decide whether to ask the user. When invoked standalone, you may ask up to 1-3 clarifying questions.
+If there are critical ambiguities, list them in the Ambiguities section of the output. When invoked from a pipeline (e.g., resolve-issue), do NOT stop to ask — flag them in the output and let the orchestrator decide whether to ask the user. When invoked standalone, you may ask up to 1-3 clarifying questions.

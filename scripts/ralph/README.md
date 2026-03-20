@@ -75,7 +75,7 @@ In remote mode, standalone artifacts (`prd.json`, `progress.txt`) default to the
 
 ### Setup for remote execution
 
-First, generate the PRD and task plan using the `resolve-gh-issue` skill. Choose **option B** at the confirmation step to save artifacts without executing. Then run Ralph remotely (or locally) to execute the plan.
+First, generate the PRD and task plan using the `resolve-issue` skill. Choose **option B** at the confirmation step to save artifacts without executing. Then run Ralph remotely (or locally) to execute the plan.
 
 Without `--max-iterations` (or the positional numeric alias), Ralph runs until the issue is completed or it hits a fatal error.
 

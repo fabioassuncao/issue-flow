@@ -5,7 +5,7 @@ description: >
   passing story and updating the task plan. Use this skill when you have a JSON task plan and
   need to autonomously implement each user story one at a time with quality checks, commits,
   and progress tracking. Triggers on: "execute tasks", "implement the stories", "start coding
-  the plan", or when the resolve-gh-issue skill delegates implementation.
+  the plan", or when the resolve-issue skill delegates implementation.
 ---
 
 # Execute Tasks (Autonomous Agent)

@@ -1,4 +1,4 @@
-# generate-gh-issue
+# generate-issue
 
 Generates detailed, architect-quality GitHub issues from short instructions. Analyzes the project's actual stack, architecture, and codebase before writing. Detects duplicate issues, validates labels, and publishes via `gh` CLI.
 
