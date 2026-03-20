@@ -141,9 +141,11 @@ Pass as context:
 
 Store the parsed user stories list as `TASK_PLAN`.
 
-**→ Immediately proceed to Step 3c.**
+**MANDATORY — You MUST now execute Step 3c below. Do NOT end your turn here. The convert-prd-to-json output is NOT the end of this phase.**
 
-### Step 3c — Confirm Before Development Starts
+### Step 3c — MANDATORY User Confirmation Gate (DO NOT SKIP)
+
+**THIS STEP IS REQUIRED.** You must present the prompt below and wait for the user's response. Never end your turn without completing this step.
 
 Present the task plan summary and ask only whether the user wants to start development now:
 
@@ -241,3 +243,4 @@ issues/
 - **Each skill invocation is a delegation** — wait for the skill to fully complete before moving to the next phase
 - **Never execute Ralph automatically** — it is an opt-in advanced option shown only as information after the user decides not to start development
 - **If the user chooses not to proceed in Step 3c, stop cleanly and preserve all generated artifacts**
+- **Step 3c is a mandatory gate** — After convert-prd-to-json completes, you MUST present the Step 3c confirmation prompt in the same turn. Never end your turn between Step 3b and Step 3c.

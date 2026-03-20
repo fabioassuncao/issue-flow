@@ -163,3 +163,12 @@ Estimated complexity: Medium
 - [ ] No story depends on a later story
 - [ ] Oversized stories were split
 - [ ] branchName matches the current git branch
+
+---
+
+## IMPORTANT: Return Control to Calling Skill
+
+After printing the summary, your work is done. Do NOT present any decision to the user. The calling skill (resolve-issue) has a mandatory user decision gate (Step 3c) that MUST run next.
+
+Your final output line must be exactly:
+⏭️ Returning to resolve-issue for user confirmation.
