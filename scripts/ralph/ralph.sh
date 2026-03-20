@@ -68,6 +68,7 @@ setup_colors() {
     ICON_FAIL='✗'
     ICON_PENDING='⏳'
     ICON_RETRY='↻'
+    ICON_WARN='⚠'
     ICON_START='▶'
     ICON_END='■'
   else
@@ -75,6 +76,7 @@ setup_colors() {
     ICON_FAIL='[FAIL]'
     ICON_PENDING='[...]'
     ICON_RETRY='[RETRY]'
+    ICON_WARN='[WARN]'
     ICON_START='[START]'
     ICON_END='[END]'
   fi
@@ -89,7 +91,11 @@ print_error() {
 }
 
 print_warning() {
-  printf '%b%s%b\n' "${CLR_YELLOW}${ICON_PENDING} " "$*" "${CLR_RESET}"
+  printf '%b%s%b\n' "${CLR_YELLOW}${ICON_WARN} " "$*" "${CLR_RESET}"
+}
+
+print_retry() {
+  printf '%b%s%b\n' "${CLR_YELLOW}${ICON_RETRY} " "$*" "${CLR_RESET}"
 }
 
 print_info() {
@@ -652,7 +658,7 @@ if jq -e '.issueStatus == "completed"' "$PRD_FILE" >/dev/null; then
     exit 0
   fi
 
-  echo "Warning: issue marked completed but some stories are still pending. Resetting to in_progress."
+  print_warning "Issue marked completed but some stories are still pending. Resetting to in_progress."
   mark_issue_in_progress
   set_last_error "invalid_completion_state" "tasks.json claimed the issue was completed before every story had passes=true."
 fi
@@ -742,13 +748,13 @@ while true; do
 
       if [ "$RETRY_FOREVER" -ne 1 ] && [ "$retry_count" -gt "$RETRY_LIMIT" ]; then
         echo ""
-        echo "Claude CLI failed with a transient error on iteration $i and exceeded the retry limit ($RETRY_LIMIT)."
+        print_error "Claude CLI failed with a transient error on iteration $i and exceeded the retry limit ($RETRY_LIMIT)."
         exit "$CLAUDE_EXIT"
       fi
 
       DELAY_SECONDS=$(retry_delay_seconds "$retry_count")
       echo ""
-      echo "Transient Claude failure on iteration $i (attempt $retry_count). Retrying in ${DELAY_SECONDS}s."
+      print_retry "Transient Claude failure on iteration $i (attempt $retry_count). Retrying in ${DELAY_SECONDS}s."
       # Retries should stay within the current iteration budget.
       i=$((i - 1))
       sleep "$DELAY_SECONDS"
@@ -757,7 +763,7 @@ while true; do
 
     set_last_error "fatal_claude_failure" "$ERROR_MESSAGE"
     echo ""
-    echo "Claude CLI failed on iteration $i with exit code $CLAUDE_EXIT."
+    print_error "Claude CLI failed on iteration $i with exit code $CLAUDE_EXIT."
     exit "$CLAUDE_EXIT"
   fi
 
@@ -780,7 +786,7 @@ while true; do
 
     set_last_error "invalid_completion_signal" "Claude returned <promise>COMPLETE</promise> before every story had passes=true."
     echo ""
-    echo "Claude returned a completion signal, but tasks.json still has pending stories. Ignoring completion and continuing."
+    print_warning "Claude returned a completion signal, but tasks.json still has pending stories. Ignoring completion and continuing."
   fi
 
   print_success "Iteration $i complete. Continuing..."
