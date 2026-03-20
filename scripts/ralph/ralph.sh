@@ -96,6 +96,119 @@ print_info() {
   printf '%b%s%b\n' "${CLR_BLUE}${ICON_START} " "$*" "${CLR_RESET}"
 }
 
+# --- Box Drawing Utilities ---
+
+# Truncate or pad a string to fit within a given width
+_fit_line() {
+  local text="$1"
+  local width="$2"
+  local len=${#text}
+
+  if [ "$len" -gt "$width" ]; then
+    printf '%s' "${text:0:$width}"
+  else
+    printf '%-*s' "$width" "$text"
+  fi
+}
+
+print_box() {
+  local -a lines=()
+  local line=""
+  local max_content_width=0
+
+  # Collect lines from arguments
+  while [ $# -gt 0 ]; do
+    lines+=("$1")
+    local len=${#1}
+    if [ "$len" -gt "$max_content_width" ]; then
+      max_content_width=$len
+    fi
+    shift
+  done
+
+  # Cap box width to terminal width (border chars + 2 padding spaces = 4 chars)
+  local available=$((TERM_WIDTH - 4))
+  if [ "$max_content_width" -gt "$available" ]; then
+    max_content_width=$available
+  fi
+  if [ "$max_content_width" -lt 20 ]; then
+    max_content_width=20
+  fi
+
+  local box_tl box_tr box_bl box_br box_h box_v box_sep_l box_sep_r
+  if [ "$USE_UNICODE" -eq 1 ]; then
+    box_tl='╭' box_tr='╮' box_bl='╰' box_br='╯'
+    box_h='─' box_v='│' box_sep_l='├' box_sep_r='┤'
+  else
+    box_tl='+' box_tr='+' box_bl='+' box_br='+'
+    box_h='-' box_v='|' box_sep_l='+' box_sep_r='+'
+  fi
+
+  # Build horizontal rule
+  local hrule=""
+  local j=0
+  while [ "$j" -lt "$((max_content_width + 2))" ]; do
+    hrule="${hrule}${box_h}"
+    j=$((j + 1))
+  done
+
+  # Print top border
+  printf '%b%s%s%s%b\n' "$CLR_BLUE" "$box_tl" "$hrule" "$box_tr" "$CLR_RESET"
+
+  # Print content lines
+  for line in "${lines[@]}"; do
+    if [ "$line" = "---" ]; then
+      printf '%b%s%s%s%b\n' "$CLR_BLUE" "$box_sep_l" "$hrule" "$box_sep_r" "$CLR_RESET"
+    else
+      local fitted
+      fitted=$(_fit_line "$line" "$max_content_width")
+      printf '%b%s%b %s %b%s%b\n' "$CLR_BLUE" "$box_v" "$CLR_RESET" "$fitted" "$CLR_BLUE" "$box_v" "$CLR_RESET"
+    fi
+  done
+
+  # Print bottom border
+  printf '%b%s%s%s%b\n' "$CLR_BLUE" "$box_bl" "$hrule" "$box_br" "$CLR_RESET"
+}
+
+print_startup_header() {
+  local stories_total stories_passing branch_name issue_label
+  local max_iter_label retry_label
+
+  stories_total=$(jq '.userStories | length' "$PRD_FILE" 2>/dev/null || echo "0")
+  stories_passing=$(jq '[.userStories[] | select(.passes == true)] | length' "$PRD_FILE" 2>/dev/null || echo "0")
+  branch_name=$(jq -r '.branchName // "N/A"' "$PRD_FILE" 2>/dev/null || echo "N/A")
+
+  if [ -n "$ISSUE_NUMBER" ]; then
+    issue_label="Issue #${ISSUE_NUMBER}"
+  else
+    issue_label="Standalone mode"
+  fi
+
+  if [ -n "$MAX_ITERATIONS" ]; then
+    max_iter_label="$MAX_ITERATIONS"
+  else
+    max_iter_label="unlimited"
+  fi
+
+  if [ "$RETRY_FOREVER" -eq 1 ]; then
+    retry_label="unlimited retries"
+  else
+    retry_label="$RETRY_LIMIT consecutive retries"
+  fi
+
+  local title_icon="$ICON_START"
+  print_box \
+    "${title_icon} Ralph Wiggum" \
+    "---" \
+    "Issue:       ${issue_label}" \
+    "Branch:      ${branch_name}" \
+    "Stories:     ${stories_passing}/${stories_total} passing" \
+    "Iterations:  ${max_iter_label}" \
+    "Retries:     ${retry_label}"
+}
+
+# --- End Box Drawing Utilities ---
+
 setup_colors
 
 # --- End Color and Icon Utility System ---
@@ -473,17 +586,7 @@ if [ ! -f "$PROGRESS_FILE" ]; then
   echo "---" >> "$PROGRESS_FILE"
 fi
 
-if [ -n "$MAX_ITERATIONS" ]; then
-  echo "Starting Ralph - Max iterations: $MAX_ITERATIONS"
-else
-  echo "Starting Ralph - Max iterations: unlimited"
-fi
-
-if [ "$RETRY_FOREVER" -eq 1 ]; then
-  echo "Transient retry policy: unlimited retries"
-else
-  echo "Transient retry policy: $RETRY_LIMIT consecutive retries"
-fi
+print_startup_header
 
 i=0
 retry_count=0
