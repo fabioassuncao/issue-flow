@@ -12,6 +12,7 @@ A collection of [agent skills](https://agentskills.io) for turning GitHub issues
 | [`generate-prd`](skills/generate-prd/) | Generates a structured PRD with user stories, acceptance criteria, and functional requirements. |
 | [`convert-prd-to-json`](skills/convert-prd-to-json/) | Converts a PRD markdown file into a structured JSON task plan for autonomous execution. |
 | [`execute-tasks`](skills/execute-tasks/) | Iteratively implements user stories from a JSON task plan with quality checks and commits. |
+| [`create-pr`](skills/create-pr/) | Creates a Pull Request from the current branch with context from issue data, PRD, and git history. |
 
 ## End-to-End Workflow
 
@@ -34,6 +35,7 @@ flowchart TD
     M --> N{All stories pass?}
     N -- No --> L
     N -- Yes --> O[Issue completed]
+    O -.-> R[create-pr<br/>Open Pull Request]
     J -- No --> P[Stop and keep artifacts]
     P --> Q[Later: resume with resolve-issue, execute-tasks, or optional ralph.sh]
 ```
@@ -98,6 +100,20 @@ Both `execute-tasks` and Ralph consume the same planning artifacts. The differen
 
 - `execute-tasks` runs inside the skill flow
 - `ralph.sh` is an external loop that repeatedly launches fresh Claude Code sessions until all stories pass or a stop condition is hit
+</details>
+
+<details>
+<summary><strong>5. Open a Pull Request with <code>create-pr</code></strong></summary>
+
+After all stories pass and the implementation is complete, use [`create-pr`](skills/create-pr/) to open a Pull Request directly from the working branch.
+
+`create-pr` automatically:
+- detects the current branch and extracts the issue number from the `issue/{N}-*` pattern
+- collects context from the GitHub issue, `issues/{N}/prd.md`, `issues/{N}/tasks.json`, and git history
+- checks for existing open PRs on the same branch to avoid duplicates
+- creates a PR with a structured description (summary, changes, user stories, review checklist) and links it to the issue with `Closes #N`
+
+This step is optional — you can always create the PR manually if you prefer.
 </details>
 
 ## Ralph (Advanced / Optional)
