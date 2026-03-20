@@ -23,6 +23,83 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# --- Color and Icon Utility System ---
+
+setup_colors() {
+  USE_COLOR=1
+  USE_UNICODE=1
+  TERM_WIDTH=80
+
+  # Disable color/unicode if NO_COLOR is set
+  if [ "${NO_COLOR:-}" = "1" ]; then
+    USE_COLOR=0
+    USE_UNICODE=0
+  fi
+
+  # Disable color/unicode if stdout is not a TTY
+  if [ ! -t 1 ]; then
+    USE_COLOR=0
+    USE_UNICODE=0
+  fi
+
+  # Detect terminal width
+  if command -v tput >/dev/null 2>&1 && tput cols >/dev/null 2>&1; then
+    TERM_WIDTH=$(tput cols)
+  fi
+
+  if [ "$USE_COLOR" -eq 1 ]; then
+    CLR_GREEN='\033[0;32m'
+    CLR_RED='\033[0;31m'
+    CLR_YELLOW='\033[0;33m'
+    CLR_BLUE='\033[0;34m'
+    CLR_GRAY='\033[0;90m'
+    CLR_RESET='\033[0m'
+  else
+    CLR_GREEN=''
+    CLR_RED=''
+    CLR_YELLOW=''
+    CLR_BLUE=''
+    CLR_GRAY=''
+    CLR_RESET=''
+  fi
+
+  if [ "$USE_UNICODE" -eq 1 ]; then
+    ICON_SUCCESS='✓'
+    ICON_FAIL='✗'
+    ICON_PENDING='⏳'
+    ICON_RETRY='↻'
+    ICON_START='▶'
+    ICON_END='■'
+  else
+    ICON_SUCCESS='[OK]'
+    ICON_FAIL='[FAIL]'
+    ICON_PENDING='[...]'
+    ICON_RETRY='[RETRY]'
+    ICON_START='[START]'
+    ICON_END='[END]'
+  fi
+}
+
+print_success() {
+  printf '%b%s%b\n' "${CLR_GREEN}${ICON_SUCCESS} " "$*" "${CLR_RESET}"
+}
+
+print_error() {
+  printf '%b%s%b\n' "${CLR_RED}${ICON_FAIL} " "$*" "${CLR_RESET}"
+}
+
+print_warning() {
+  printf '%b%s%b\n' "${CLR_YELLOW}${ICON_PENDING} " "$*" "${CLR_RESET}"
+}
+
+print_info() {
+  printf '%b%s%b\n' "${CLR_BLUE}${ICON_START} " "$*" "${CLR_RESET}"
+}
+
+setup_colors
+
+# --- End Color and Icon Utility System ---
+
 usage() {
   cat <<EOF
 Usage: ./ralph.sh [--issue N] [--max-iterations N] [--retry-limit N] [--retry-forever]
