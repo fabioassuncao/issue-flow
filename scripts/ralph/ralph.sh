@@ -207,6 +207,121 @@ print_startup_header() {
     "Retries:     ${retry_label}"
 }
 
+# --- Progress Display Utilities ---
+
+print_progress_bar() {
+  local passed="$1"
+  local total="$2"
+  local bar_width=20
+  local filled=0
+  local pct=0
+
+  if [ "$total" -gt 0 ]; then
+    pct=$((passed * 100 / total))
+    filled=$((passed * bar_width / total))
+  fi
+
+  local empty=$((bar_width - filled))
+
+  local fill_char empty_char
+  if [ "$USE_UNICODE" -eq 1 ]; then
+    fill_char='█'
+    empty_char='░'
+  else
+    fill_char='#'
+    empty_char='-'
+  fi
+
+  local bar=""
+  local j=0
+  while [ "$j" -lt "$filled" ]; do
+    bar="${bar}${fill_char}"
+    j=$((j + 1))
+  done
+  j=0
+  while [ "$j" -lt "$empty" ]; do
+    bar="${bar}${empty_char}"
+    j=$((j + 1))
+  done
+
+  printf '%b%s%b %s/%s (%s%%)' "$CLR_GREEN" "$bar" "$CLR_RESET" "$passed" "$total" "$pct"
+}
+
+print_iteration_header() {
+  local iteration="$1"
+  local max_iter="${2:-}"
+
+  local iter_label
+  if [ -n "$max_iter" ]; then
+    iter_label="Iteration ${iteration} of ${max_iter}"
+  else
+    iter_label="Iteration ${iteration}"
+  fi
+
+  # Read story data
+  local stories_json
+  stories_json=$(jq -c '.userStories // []' "$PRD_FILE" 2>/dev/null || echo '[]')
+  local total
+  total=$(printf '%s' "$stories_json" | jq 'length')
+  local passed
+  passed=$(printf '%s' "$stories_json" | jq '[.[] | select(.passes == true)] | length')
+
+  echo ""
+  printf '%b━━━ %s %s ━━━%b\n' "$CLR_BLUE" "$ICON_START" "$iter_label" "$CLR_RESET"
+  echo ""
+
+  # Display each story status
+  local idx=0
+  while [ "$idx" -lt "$total" ]; do
+    local sid stitle spasses
+    sid=$(printf '%s' "$stories_json" | jq -r ".[$idx].id")
+    stitle=$(printf '%s' "$stories_json" | jq -r ".[$idx].title")
+    spasses=$(printf '%s' "$stories_json" | jq -r ".[$idx].passes")
+
+    local icon color
+    if [ "$spasses" = "true" ]; then
+      icon="$ICON_SUCCESS"
+      color="$CLR_GREEN"
+    else
+      # Check if this is the next story to work on (first non-passing)
+      local prior_all_pass=true
+      local k=0
+      while [ "$k" -lt "$idx" ]; do
+        local kpasses
+        kpasses=$(printf '%s' "$stories_json" | jq -r ".[$k].passes")
+        if [ "$kpasses" != "true" ]; then
+          prior_all_pass=false
+          break
+        fi
+        k=$((k + 1))
+      done
+      if [ "$prior_all_pass" = "true" ]; then
+        # This is the current in-progress story
+        icon="$ICON_PENDING"
+        color="$CLR_YELLOW"
+      else
+        # Pending (not yet reached)
+        if [ "$USE_UNICODE" -eq 1 ]; then
+          icon="○"
+        else
+          icon="[ ]"
+        fi
+        color="$CLR_GRAY"
+      fi
+    fi
+
+    printf '  %b%s %s: %s%b\n' "$color" "$icon" "$sid" "$stitle" "$CLR_RESET"
+    idx=$((idx + 1))
+  done
+
+  echo ""
+  printf '  '
+  print_progress_bar "$passed" "$total"
+  echo ""
+}
+
+# --- End Progress Display Utilities ---
+
 # --- End Box Drawing Utilities ---
 
 setup_colors
@@ -598,14 +713,7 @@ while true; do
   fi
 
   i=$((i + 1))
-  echo ""
-  echo "==============================================================="
-  if [ -n "$MAX_ITERATIONS" ]; then
-    echo "  Ralph Iteration $i of $MAX_ITERATIONS"
-  else
-    echo "  Ralph Iteration $i"
-  fi
-  echo "==============================================================="
+  print_iteration_header "$i" "$MAX_ITERATIONS"
 
   # Run Claude Code with the ralph prompt (with placeholders replaced)
   PROMPT=$(sed \
@@ -675,7 +783,7 @@ while true; do
     echo "Claude returned a completion signal, but tasks.json still has pending stories. Ignoring completion and continuing."
   fi
 
-  echo "Iteration $i complete. Continuing..."
+  print_success "Iteration $i complete. Continuing..."
   sleep 2
 done
 
