@@ -208,7 +208,7 @@ npx skills add fabioassuncao/issue-flow
 npx skills add fabioassuncao/issue-flow --skill generate-issue
 ```
 
-For full documentation on skills, the sub-agent, installation methods (plugin marketplace, manual, skills.sh), the Ralph Loop for large task plans, and headless/CI usage, see **[Skills & Sub-Agent Architecture](docs/skills-and-agents.md)**.
+For full documentation on skills, the sub-agent, installation via `npx skills add`, the Ralph Loop for large task plans, and headless/CI usage, see **[Skills & Sub-Agent Architecture](docs/skills-and-agents.md)**.
 
 ## Credits
 

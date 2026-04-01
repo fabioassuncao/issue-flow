@@ -272,26 +272,22 @@ Issue Flow has two types of components with different installation methods:
 | `analyze-issue`, `generate-prd`, `convert-prd-to-json`, `execute-tasks`, `create-pr`, `review-issue`, `generate-issue` | Skills (`skills/`) | Yes -- works with any tool that supports [Agent Skills](https://agentskills.io) | No |
 | `resolve-issue` (orchestrator) | Sub-agent (`agents/`) | **No** -- exclusive to Claude Code | **Yes** |
 
-### Full installation (Claude Code)
+### Full installation (sub-agent + all skills)
 
 Installs everything: the sub-agent orchestrator + all skills. This is the only way to get the full pipeline with modes, auto-correction loop, and pipeline resumption.
 
-**As a plugin:**
-
 ```bash
-# 1. Add the marketplace
-/plugin marketplace add fabioassuncao/issue-flow
-
-# 2. Install the plugin
-/plugin install issue-flow@issue-flow-marketplace
+# Install all skills + sub-agent
+npx skills add fabioassuncao/issue-flow
 ```
 
-**Manual (sub-agent only):**
+This installs all skills into `.claude/skills/` and the sub-agent into `.claude/agents/`.
 
-If you prefer not to use the plugin marketplace, you can install the sub-agent manually:
+**Sub-agent only (manual):**
+
+If you only need the sub-agent orchestrator:
 
 ```bash
-# From your project root
 mkdir -p .claude/agents
 curl -sSL https://raw.githubusercontent.com/fabioassuncao/issue-flow/main/agents/resolve-issue.md \
   -o .claude/agents/resolve-issue.md
@@ -299,17 +295,9 @@ curl -sSL https://raw.githubusercontent.com/fabioassuncao/issue-flow/main/agents
 
 The sub-agent also requires the skills it orchestrates to be installed (see below).
 
-**Local development:**
-
-```bash
-claude --plugin-dir ./issue-flow
-```
-
 ### Skills only (any Agent Skills-compatible tool)
 
 If you use a tool other than Claude Code (or prefer to use skills individually without the orchestrator), install only the skills:
-
-**Using [skills.sh](https://skills.sh/):**
 
 ```bash
 # All skills
@@ -324,7 +312,7 @@ npx skills add fabioassuncao/issue-flow --skill generate-issue
 1. Download the desired skill folder from `skills/` in this repository.
 2. Copy it into your project's `.claude/skills/` directory.
 
-Skills are automatically available in any tool that supports Agent Skills.
+Skills are automatically available in any tool that supports [Agent Skills](https://agentskills.io).
 
 ### What works without the sub-agent
 
