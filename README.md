@@ -14,7 +14,7 @@ npx issue-flow run 42
 
 ## Requirements
 
-- **Node.js** >= 18.0.0
+- **Node.js** >= 22.0.0
 - **Git** installed and available in PATH
 - **Claude Code** (`npm install -g @anthropic-ai/claude-code`)
 - **GitHub CLI** (`gh`) authenticated (`gh auth login`)
