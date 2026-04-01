@@ -9,7 +9,7 @@ export async function getProjectRoot(): Promise<string> {
 
   if (result.exitCode !== 0) {
     throw new Error(
-      'Not inside a git repository. Please run ralph-agent from within a git project.',
+      'Not inside a git repository. Please run issue-flow from within a git project.',
     );
   }
 

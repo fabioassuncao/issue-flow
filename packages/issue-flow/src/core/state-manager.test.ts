@@ -65,7 +65,7 @@ describe('state-manager', () => {
   let tmpDir: string;
 
   beforeEach(async () => {
-    tmpDir = join(tmpdir(), `ralph-test-${Date.now()}`);
+    tmpDir = join(tmpdir(), `issue-flow-test-${Date.now()}`);
     await mkdir(tmpDir, { recursive: true });
   });
 

@@ -1,4 +1,4 @@
-# Desenvolvimento e Deploy - ralph-agent
+# Desenvolvimento e Deploy - issue-flow
 
 Guia completo para configurar o ambiente de desenvolvimento, testar localmente e publicar no NPM.
 
@@ -10,15 +10,16 @@ Guia completo para configurar o ambiente de desenvolvimento, testar localmente e
 | npm | >= 9 | `npm --version` |
 | git | qualquer | `git --version` |
 | Claude Code | latest | `claude --version` |
+| GitHub CLI | latest | `gh --version` |
 
-Para publicar no NPM, voce tambem precisa de uma conta com acesso ao pacote `ralph-agent`.
+Para publicar no NPM, voce tambem precisa de uma conta com acesso ao pacote `issue-flow`.
 
 ## Setup de desenvolvimento
 
 ```bash
 # Clone o repositorio
 git clone https://github.com/fabioassuncao/issue-flow.git
-cd issue-flow/packages/ralph-agent
+cd issue-flow/packages/issue-flow
 
 # Instale as dependencias
 npm install
@@ -28,12 +29,25 @@ npm install
 
 ```
 src/
-  cli.ts                  # Entry point (commander)
+  cli.ts                  # Entry point, subcommand registration (commander)
   config.ts               # Resolucao de configuracao e defaults
   types.ts                # Interfaces TypeScript compartilhadas
+  schemas.ts              # Schemas de validacao zod
+  commands/
+    init.ts               # Verificacao de pre-requisitos
+    generate.ts           # Criacao de issues via headless
+    run.ts                # Orquestrador completo do pipeline
+    analyze.ts            # Analise de issues via headless
+    prd.ts                # Geracao de PRD via headless
+    plan.ts               # Conversao PRD-to-JSON via headless
+    execute.ts            # Loop iterativo de execucao de stories
+    review.ts             # Revisao de implementacao via headless
+    pr.ts                 # Criacao de PR via headless
   core/
-    engine.ts             # Loop principal de orquestracao
+    engine.ts             # Loop principal do agente
     executor.ts           # Invocacao do Claude CLI via execa
+    headless.ts           # Wrapper tipado para claude -p
+    pipeline.ts           # Maquina de estados do pipeline
     state-manager.ts      # CRUD tipado para tasks.json
     prompt-resolver.ts    # Resolucao e templating de prompts
   ui/
@@ -78,6 +92,9 @@ Roda os testes em `src/**/*.test.ts` via Vitest. Cobertura atual:
 - `state-manager.test.ts` - CRUD do tasks.json e mutacoes de estado
 - `prompt-resolver.test.ts` - Substituicao de placeholders
 - `retry.test.ts` - Deteccao de falhas transientes e calculo de backoff
+- `pipeline.test.ts` - Transicoes de fases e logica de resumo
+- `headless.test.ts` - Wrapper para invocacoes headless
+- `schemas.test.ts` - Validacao de schemas zod
 
 ### 2. Teste manual do CLI
 
@@ -87,7 +104,10 @@ npm run build
 node dist/cli.js --help
 
 # Teste com uma issue real (requer tasks.json em issues/N/)
-node dist/cli.js --issue 1 --max-iterations 1
+node dist/cli.js execute --issue 1 --max-iterations 1
+
+# Pipeline completo
+node dist/cli.js run 42
 ```
 
 ### 3. Teste via npm link (simula instalacao global)
@@ -98,19 +118,19 @@ npm run build
 npm link
 
 # Agora o comando esta disponivel globalmente
-ralph-agent --help
-ralph-agent --issue 42 --max-iterations 1
+issue-flow --help
+issue-flow run 42
 
 # Para remover o link
-npm unlink -g ralph-agent
+npm unlink -g issue-flow
 ```
 
 ### 4. Teste via npx local
 
 ```bash
 # A partir da raiz do repositorio
-npm run build --prefix packages/ralph-agent
-npx --prefix packages/ralph-agent ralph-agent --help
+npm run build --prefix packages/issue-flow
+npx --prefix packages/issue-flow issue-flow --help
 ```
 
 ### 5. Teste do pacote antes de publicar
@@ -120,12 +140,12 @@ npx --prefix packages/ralph-agent ralph-agent --help
 npm pack
 
 # Verifica o conteudo (deve conter apenas dist/)
-tar -tzf ralph-agent-*.tgz
+tar -tzf issue-flow-*.tgz
 
 # Testa instalacao a partir do tarball
 cd /tmp
-npm install /caminho/para/ralph-agent-1.0.0.tgz
-npx ralph-agent --help
+npm install /caminho/para/issue-flow-2.0.0.tgz
+npx issue-flow --help
 ```
 
 ## Publicacao no NPM
@@ -163,13 +183,13 @@ npm whoami
 Use `npm version` para atualizar a versao no `package.json` e criar uma tag git:
 
 ```bash
-# Patch (1.0.0 -> 1.0.1) - bug fixes
+# Patch (2.0.0 -> 2.0.1) - bug fixes
 npm version patch
 
-# Minor (1.0.0 -> 1.1.0) - novas features retrocompativeis
+# Minor (2.0.0 -> 2.1.0) - novas features retrocompativeis
 npm version minor
 
-# Major (1.0.0 -> 2.0.0) - breaking changes
+# Major (2.0.0 -> 3.0.0) - breaking changes
 npm version major
 ```
 
@@ -187,16 +207,16 @@ npm publish --access public
 
 ```bash
 # Limpe o cache do npx e teste
-npx --yes ralph-agent@latest --help
+npx --yes issue-flow@latest --help
 
 # Verifique no registry
-npm info ralph-agent
+npm info issue-flow
 ```
 
 ### Checklist pos-publicacao
 
-- [ ] `npx ralph-agent@latest --help` funciona
-- [ ] Versao correta aparece no `npm info ralph-agent`
+- [ ] `npx issue-flow@latest --help` funciona
+- [ ] Versao correta aparece no `npm info issue-flow`
 - [ ] Tag git criada e pushada (`git push --tags`)
 
 ## Versionamento (SemVer)
@@ -227,5 +247,5 @@ npm publish
 git push && git push --tags
 
 # 6. Verifique
-npx --yes ralph-agent@latest --help
+npx --yes issue-flow@latest --help
 ```

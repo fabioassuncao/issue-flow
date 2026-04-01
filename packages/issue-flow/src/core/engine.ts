@@ -43,7 +43,7 @@ function sleep(seconds: number): Promise<void> {
  */
 async function ensureProgressFile(progressFile: string): Promise<void> {
   if (!existsSync(progressFile)) {
-    const content = `# Ralph Progress Log\nStarted: ${new Date().toString()}\n---\n`;
+    const content = `# Issue Flow Progress Log\nStarted: ${new Date().toString()}\n---\n`;
     await writeFile(progressFile, content, 'utf-8');
   }
 }
@@ -94,7 +94,7 @@ async function archiveIfBranchChanged(
     // Reset progress file for new run
     await writeFile(
       progressFile,
-      `# Ralph Progress Log\nStarted: ${new Date().toString()}\n---\n`,
+      `# Issue Flow Progress Log\nStarted: ${new Date().toString()}\n---\n`,
       'utf-8',
     );
   }
@@ -114,9 +114,9 @@ async function trackBranch(
 }
 
 /**
- * Run the Ralph engine loop.
+ * Run the issue-flow engine loop.
  *
- * This replicates the full execution flow of ralph.sh:
+ * This replicates the full execution flow:
  * 1. Load and initialize task plan state
  * 2. Check for early exit (already complete)
  * 3. Archive previous run if branch changed

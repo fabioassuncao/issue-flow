@@ -45,7 +45,7 @@ export async function resolvePrompt(
   }
 
   // Download from remote
-  const tmpDir = join(tmpdir(), `ralph-prompt-${Date.now()}`);
+  const tmpDir = join(tmpdir(), `issue-flow-prompt-${Date.now()}`);
   await mkdir(tmpDir, { recursive: true });
   const tmpFile = join(tmpDir, 'prompt.md');
 

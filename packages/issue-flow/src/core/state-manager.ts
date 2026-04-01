@@ -42,7 +42,7 @@ export async function saveTaskPlan(
   plan: TaskPlan,
 ): Promise<void> {
   const dir = dirname(path);
-  const tmpDir = await mkdtemp(join(tmpdir(), 'ralph-task-plan-'));
+  const tmpDir = await mkdtemp(join(tmpdir(), 'issue-flow-task-plan-'));
   const tmpFile = join(tmpDir, 'tasks.json');
 
   await writeFile(tmpFile, JSON.stringify(plan, null, 2) + '\n', 'utf-8');

@@ -92,7 +92,7 @@ program
 // ── execute ─────────────────────────────────────────────────────────────────
 program
   .command('execute')
-  .description('Run the iterative story execution loop (ralph-agent engine)')
+  .description('Run the iterative story execution loop (issue-flow engine)')
   .option('--issue <number>', 'Issue number — reads artifacts from issues/N/')
   .option('--max-iterations <number>', 'Stop after N iterations', parseInteger)
   .option('--retry-limit <number>', 'Retry transient Claude failures up to N consecutive times', parseInteger)
