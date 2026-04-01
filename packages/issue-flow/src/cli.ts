@@ -19,7 +19,11 @@ function parseInteger(value: string): number {
 function withGlobalOptions(cmd: Command): Command {
   return cmd
     .option('-v, --verbose', 'Show Claude progress output in real time')
-    .option('-t, --timeout <seconds>', 'Override headless timeout in seconds (0 = no limit)', parseInteger);
+    .option(
+      '-t, --timeout <seconds>',
+      'Override headless timeout in seconds (0 = no limit)',
+      parseInteger,
+    );
 }
 
 const program = new Command();
@@ -43,9 +47,7 @@ program.hook('preAction', (_thisCommand, actionCommand) => {
 
 // ── init ────────────────────────────────────────────────────────────────────
 withGlobalOptions(
-  program
-    .command('init')
-    .description('Verify that all prerequisites (claude, gh, git) are met'),
+  program.command('init').description('Verify that all prerequisites (claude, gh, git) are met'),
 ).action(async () => {
   const { runInit } = await import('./commands/init.js');
   const code = await runInit();

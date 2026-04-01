@@ -1,7 +1,7 @@
 import { createInterface } from 'node:readline';
 import chalk from 'chalk';
 import { execa } from 'execa';
-import { ElapsedTimer, createSpinner, formatDuration, getIcons, useColor } from '../ui/logger.js';
+import { createSpinner, ElapsedTimer, formatDuration, getIcons, useColor } from '../ui/logger.js';
 import { isVerbose } from './verbose.js';
 
 export interface HeadlessOptions {
@@ -213,7 +213,8 @@ async function runHeadlessVerbose(
 
   if (proc.exitCode !== 0 && !resultText) {
     const stderr = proc.stderr?.toString() ?? '';
-    const isTimeout = proc.exitCode === 143 || ('signalName' in proc && proc.signalName === 'SIGTERM');
+    const isTimeout =
+      proc.exitCode === 143 || ('signalName' in proc && proc.signalName === 'SIGTERM');
     const errorMsg = isTimeout
       ? `Headless invocation timed out after ${timeout}ms`
       : stderr || `claude exited with code ${proc.exitCode}`;
@@ -296,7 +297,9 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
 
     if (proc.exitCode !== 0) {
       const elapsed = timer?.stop() ?? 0;
-      const dur = useColor() ? chalk.dim(` (${formatDuration(elapsed)})`) : ` (${formatDuration(elapsed)})`;
+      const dur = useColor()
+        ? chalk.dim(` (${formatDuration(elapsed)})`)
+        : ` (${formatDuration(elapsed)})`;
       spinner?.fail(`${statusMessage}${dur}`);
       return {
         success: false,
@@ -307,7 +310,9 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
     }
 
     const elapsed = timer?.stop() ?? 0;
-    const dur = useColor() ? chalk.dim(` (${formatDuration(elapsed)})`) : ` (${formatDuration(elapsed)})`;
+    const dur = useColor()
+      ? chalk.dim(` (${formatDuration(elapsed)})`)
+      : ` (${formatDuration(elapsed)})`;
     spinner?.succeed(`${statusMessage}${dur}`);
 
     if (outputFormat === 'json') {
@@ -341,7 +346,9 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     const catchElapsed = timer?.stop() ?? 0;
-    const catchDur = useColor() ? chalk.dim(` (${formatDuration(catchElapsed)})`) : ` (${formatDuration(catchElapsed)})`;
+    const catchDur = useColor()
+      ? chalk.dim(` (${formatDuration(catchElapsed)})`)
+      : ` (${formatDuration(catchElapsed)})`;
     spinner?.fail(`${statusMessage}${catchDur}`);
 
     if (message.includes('timed out') || message.includes('ETIMEDOUT')) {
