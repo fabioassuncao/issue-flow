@@ -144,6 +144,16 @@ When all stories are complete, Ralph exits with `<promise>COMPLETE</promise>` an
 | `--issue` artifacts | `issues/N/` (same in both modes) | `issues/N/` (same in both modes) |
 | Requirements | `jq`, Claude Code | `jq`, Claude Code, `curl` or `wget` |
 
+## TypeScript CLI Alternative
+
+A TypeScript CLI version of Ralph is available as an npm package, offering the same functionality with type safety, no `jq` dependency, and npm-based distribution:
+
+```bash
+npx ralph-agent --issue 42
+```
+
+See [`packages/ralph-agent/README.md`](../../packages/ralph-agent/README.md) for details.
+
 ## Credits
 
 Based on [Geoffrey Huntley's Ralph pattern](https://ghuntley.com/ralph/) and the [snarktank/ralph](https://github.com/snarktank/ralph) repository.
