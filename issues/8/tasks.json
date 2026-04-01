@@ -15,7 +15,7 @@
     "prdCompleted": true,
     "jsonCompleted": true,
     "executionCompleted": true,
-    "reviewCompleted": false,
+    "reviewCompleted": true,
     "prCreated": false
   },
   "userStories": [
