@@ -129,6 +129,8 @@ npm test
 npm run dev
 ```
 
+For the full development setup, local testing, and NPM publishing guide, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Credits
 
 Based on [Geoffrey Huntley's Ralph pattern](https://ghuntley.com/ralph/) and the [snarktank/ralph](https://github.com/snarktank/ralph) repository.
