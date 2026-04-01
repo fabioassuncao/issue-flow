@@ -1,8 +1,28 @@
 # issue-flow
 
+> This is the npm package README. For full project documentation, see the [root README](../../README.md).
+
 Unified CLI that orchestrates the full issue-to-PR pipeline via [Claude Code](https://docs.anthropic.com/en/docs/claude-code) Headless mode. Analyzes issues, generates PRDs, creates task plans, implements code iteratively, reviews results, and opens pull requests -- all programmatically, without interactive sessions.
 
 Built on the [Ralph pattern](https://ghuntley.com/ralph/) for autonomous AI agent loops.
+
+## Pipeline Flow
+
+```mermaid
+flowchart LR
+    subgraph "issue-flow run 42"
+        A["init"] --> B["analyze"]
+        B --> C["prd"]
+        C --> D["plan"]
+        D --> E["execute"]
+        E --> F["review"]
+        F --> G{PASS?}
+        G -- Yes --> H["pr"]
+        G -- No --> I{"Retries\n< max?"}
+        I -- Yes --> E
+        I -- No --> J["Stop"]
+    end
+```
 
 ## Requirements
 
@@ -35,8 +55,8 @@ npx issue-flow run 42
 # Resume from a specific phase
 npx issue-flow run 42 --from execute
 
-# Semi-automatic mode
-npx issue-flow run 42 --mode semi_auto
+# Manual mode (artifacts only, no execution)
+npx issue-flow run 42 --mode manual
 ```
 
 Executes all phases in order: **init** → **analyze** → **prd** → **plan** → **execute** → **review** → **pr**. Automatically resumes from the last incomplete phase if pipeline state exists. On review failure, runs correction cycles (re-execute + re-review) up to `maxCorrectionCycles`.
@@ -200,3 +220,7 @@ For the full development setup, local testing, and NPM publishing guide, see [CO
 ## Credits
 
 Based on [Geoffrey Huntley's Ralph pattern](https://ghuntley.com/ralph/) and the [snarktank/ralph](https://github.com/snarktank/ralph) repository.
+
+## See Also
+
+- [Skills & Sub-Agent Architecture](../../docs/skills-and-agents.md) -- Using Issue Flow interactively via Claude Code skills and the `resolve-issue` sub-agent.

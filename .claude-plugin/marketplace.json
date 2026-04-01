@@ -4,7 +4,7 @@
     "name": "fabioassuncao"
   },
   "metadata": {
-    "description": "GitHub issue resolution pipeline with sub-agent orchestration, auto-correction loop, and multi-mode execution (auto/semi_auto/manual)",
+    "description": "GitHub issue resolution pipeline with sub-agent orchestration, auto-correction loop, and multi-mode execution (auto/manual)",
     "version": "2.0.0"
   },
   "plugins": [

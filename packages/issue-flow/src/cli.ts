@@ -48,7 +48,7 @@ program
   .command('run')
   .description('Execute the full pipeline: analyze → prd → plan → execute → review → pr')
   .argument('<issue>', 'Issue number')
-  .option('--mode <mode>', 'Execution mode: auto | semi_auto | manual', 'auto')
+  .option('--mode <mode>', 'Execution mode: auto | manual', 'auto')
   .option('--from <phase>', 'Resume from a specific phase')
   .action(async (issue: string, options: { mode: string; from?: string }) => {
     const { runPipeline } = await import('./commands/run.js');
