@@ -4,13 +4,11 @@ import { runHeadless } from '../core/headless.js';
 import { applyPlaceholders, loadPrompt } from '../core/prompt-resolver.js';
 import { loadTaskPlan, saveTaskPlan } from '../core/state-manager.js';
 import { taskPlanSchema } from '../schemas.js';
-import { printError, printInfo, printSuccess } from '../ui/logger.js';
+import { printError, printSuccess } from '../ui/logger.js';
 
 export async function runPlan(issue: string): Promise<number> {
   const issueNumber = issue.replace(/^#/, '');
   const issueDir = join('issues', issueNumber);
-
-  printInfo(`Converting PRD to task plan for issue #${issueNumber}...`);
 
   // Read the PRD
   const prdPath = join(issueDir, 'prd.md');
@@ -35,10 +33,11 @@ export async function runPlan(issue: string): Promise<number> {
 
   const result = await runHeadless({
     prompt,
-    maxTurns: 15,
-    timeout: 120_000,
+    maxTurns: 25,
+    timeout: 300_000,
     outputFormat: 'text',
     allowedTools: ['Bash', 'Read', 'Glob', 'Grep', 'Write'],
+    statusMessage: `Converting PRD to task plan for issue #${issueNumber}...`,
   });
 
   if (!result.success) {

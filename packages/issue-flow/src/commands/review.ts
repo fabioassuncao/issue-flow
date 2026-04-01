@@ -2,7 +2,7 @@ import { join } from 'node:path';
 import { runHeadless } from '../core/headless.js';
 import { applyPlaceholders, loadPrompt } from '../core/prompt-resolver.js';
 import { loadTaskPlan, saveTaskPlan } from '../core/state-manager.js';
-import { printError, printInfo, printSuccess } from '../ui/logger.js';
+import { printError, printSuccess } from '../ui/logger.js';
 
 export interface ReviewResult {
   status: 'PASS' | 'FAIL';
@@ -44,8 +44,6 @@ export async function runReview(issue: string): Promise<number> {
   const issueDir = join('issues', issueNumber);
   const tasksPath = join(issueDir, 'tasks.json');
 
-  printInfo(`Reviewing issue #${issueNumber} resolution...`);
-
   const template = await loadPrompt('review');
   const prompt = applyPlaceholders(template, {
     __ISSUE_NUMBER__: issueNumber,
@@ -54,10 +52,11 @@ export async function runReview(issue: string): Promise<number> {
 
   const result = await runHeadless({
     prompt,
-    maxTurns: 20,
-    timeout: 180_000,
+    maxTurns: 25,
+    timeout: 300_000,
     outputFormat: 'text',
     allowedTools: ['Bash', 'Read', 'Glob', 'Grep'],
+    statusMessage: `Reviewing issue #${issueNumber} resolution...`,
   });
 
   if (!result.success) {

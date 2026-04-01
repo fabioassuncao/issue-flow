@@ -3,14 +3,12 @@ import { join } from 'node:path';
 import { runHeadless } from '../core/headless.js';
 import { applyPlaceholders, loadPrompt } from '../core/prompt-resolver.js';
 import { loadTaskPlan, saveTaskPlan } from '../core/state-manager.js';
-import { printError, printInfo, printSuccess } from '../ui/logger.js';
+import { printError, printSuccess } from '../ui/logger.js';
 
 export async function runPrd(issue: string): Promise<number> {
   const issueNumber = issue.replace(/^#/, '');
   const issueDir = join('issues', issueNumber);
   const prdPath = join(issueDir, 'prd.md');
-
-  printInfo(`Generating PRD for issue #${issueNumber}...`);
 
   await mkdir(issueDir, { recursive: true });
 
@@ -33,10 +31,11 @@ export async function runPrd(issue: string): Promise<number> {
 
   const result = await runHeadless({
     prompt,
-    maxTurns: 15,
-    timeout: 120_000,
+    maxTurns: 25,
+    timeout: 300_000,
     outputFormat: 'text',
     allowedTools: ['Bash', 'Read', 'Glob', 'Grep', 'Write'],
+    statusMessage: `Generating PRD for issue #${issueNumber}...`,
   });
 
   if (!result.success) {

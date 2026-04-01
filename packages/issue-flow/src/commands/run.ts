@@ -1,8 +1,9 @@
 import { join } from 'node:path';
+import chalk from 'chalk';
 import { execa } from 'execa';
 import { PIPELINE_PHASES, PipelineManager, type PipelinePhase } from '../core/pipeline.js';
 import { isoNow, loadTaskPlan, saveTaskPlan } from '../core/state-manager.js';
-import { printError, printInfo, printSuccess, printWarning } from '../ui/logger.js';
+import { getIcons, printError, printInfo, printSuccess, printWarning, useColor } from '../ui/logger.js';
 import { runAnalyze } from './analyze.js';
 import { runExecute } from './execute.js';
 import { runInit } from './init.js';
@@ -10,6 +11,22 @@ import { runPlan } from './plan.js';
 import { runPr } from './pr.js';
 import { runPrd } from './prd.js';
 import { runReview } from './review.js';
+
+/**
+ * Print a pipeline phase header.
+ */
+function printPhaseHeader(phase: string): void {
+  const icons = getIcons();
+  const colored = useColor();
+  const label = phase.charAt(0).toUpperCase() + phase.slice(1);
+
+  console.log('');
+  if (colored) {
+    console.log(chalk.blue(`\u2501\u2501\u2501 ${icons.start} ${label} \u2501\u2501\u2501`));
+  } else {
+    console.log(`--- ${icons.start} ${label} ---`);
+  }
+}
 
 export async function runPipeline(issue: string, mode: string, from?: string): Promise<number> {
   const issueNumber = issue.replace(/^#/, '');
@@ -71,7 +88,7 @@ export async function runPipeline(issue: string, mode: string, from?: string): P
 
   for (let i = startIdx; i < phaseOrder.length; i++) {
     const phase = phaseOrder[i];
-    printInfo(`\n--- Phase: ${phase} ---`);
+    printPhaseHeader(phase);
 
     let code: number;
     switch (phase) {

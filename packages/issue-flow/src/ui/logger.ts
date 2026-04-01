@@ -1,9 +1,10 @@
 import chalk from 'chalk';
+import ora, { type Ora } from 'ora';
 
 /**
  * Detect if unicode output is supported.
  */
-function useUnicode(): boolean {
+export function useUnicode(): boolean {
   if (process.env.NO_COLOR != null && process.env.NO_COLOR !== '') return false;
   if (!process.stdout.isTTY) return false;
   return true;
@@ -12,7 +13,7 @@ function useUnicode(): boolean {
 /**
  * Detect if color output is supported.
  */
-function useColor(): boolean {
+export function useColor(): boolean {
   if (process.env.NO_COLOR != null && process.env.NO_COLOR !== '') return false;
   if (!process.stdout.isTTY) return false;
   return true;
@@ -27,6 +28,8 @@ export interface Icons {
   start: string;
   end: string;
   notReached: string;
+  tool: string;
+  connector: string;
 }
 
 export function getIcons(): Icons {
@@ -40,6 +43,8 @@ export function getIcons(): Icons {
       start: '\u25B6',
       end: '\u25A0',
       notReached: '\u25CB',
+      tool: '\u25B8',
+      connector: '\u2502',
     };
   }
   return {
@@ -51,6 +56,8 @@ export function getIcons(): Icons {
     start: '[START]',
     end: '[END]',
     notReached: '[ ]',
+    tool: '>',
+    connector: '|',
   };
 }
 
@@ -104,4 +111,15 @@ export function printInfo(message: string): void {
   } else {
     console.log(`${icons.start} ${message}`);
   }
+}
+
+/**
+ * Create an ora spinner with consistent styling.
+ */
+export function createSpinner(message: string): Ora {
+  return ora({
+    text: message,
+    color: 'blue',
+    spinner: 'dots',
+  });
 }

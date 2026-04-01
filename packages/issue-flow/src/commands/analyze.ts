@@ -10,8 +10,6 @@ export async function runAnalyze(issue: string): Promise<number> {
   const issueDir = join('issues', issueNumber);
   const analysisPath = join(issueDir, 'analysis.md');
 
-  printInfo(`Analyzing issue #${issueNumber}...`);
-
   await mkdir(issueDir, { recursive: true });
 
   const template = await loadPrompt('analyze');
@@ -22,10 +20,11 @@ export async function runAnalyze(issue: string): Promise<number> {
 
   const result = await runHeadless({
     prompt,
-    maxTurns: 15,
-    timeout: 120_000,
+    maxTurns: 30,
+    timeout: 300_000,
     outputFormat: 'text',
     allowedTools: ['Bash', 'Read', 'Glob', 'Grep', 'Write'],
+    statusMessage: `Analyzing issue #${issueNumber}...`,
   });
 
   if (!result.success) {
