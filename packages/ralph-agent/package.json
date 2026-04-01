@@ -1,9 +1,10 @@
 {
-  "name": "ralph-agent",
-  "version": "1.0.0",
-  "description": "Autonomous AI agent loop that runs Claude Code iteratively until all task plan stories are complete",
+  "name": "issue-flow",
+  "version": "2.0.0",
+  "description": "Unified CLI for orchestrating the full issue-flow pipeline via Claude Code Headless",
   "type": "module",
   "bin": {
+    "issue-flow": "./dist/cli.js",
     "ralph-agent": "./dist/cli.js"
   },
   "scripts": {
