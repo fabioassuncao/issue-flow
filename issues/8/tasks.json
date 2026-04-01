@@ -16,7 +16,7 @@
     "jsonCompleted": true,
     "executionCompleted": true,
     "reviewCompleted": true,
-    "prCreated": false
+    "prCreated": true
   },
   "userStories": [
     {
