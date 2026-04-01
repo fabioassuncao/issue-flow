@@ -1,0 +1,49 @@
+{
+  "name": "ralph-agent",
+  "version": "1.0.0",
+  "description": "Autonomous AI agent loop that runs Claude Code iteratively until all task plan stories are complete",
+  "type": "module",
+  "bin": {
+    "ralph-agent": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "ai",
+    "agent",
+    "claude",
+    "automation",
+    "cli",
+    "iterative",
+    "task-runner"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fabioassuncao/issue-flow.git",
+    "directory": "packages/ralph-agent"
+  },
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0",
+    "execa": "^9.5.2",
+    "ora": "^8.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.1"
+  }
+}
