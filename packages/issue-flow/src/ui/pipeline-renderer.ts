@@ -1,5 +1,6 @@
 import { Listr, PRESET_TIMER, PRESET_TIMESTAMP } from 'listr2';
 import type { PipelinePhase } from '../core/pipeline.js';
+import { setOutputCallback } from '../core/verbose.js';
 
 /**
  * Result returned after the pipeline renderer finishes.
@@ -78,16 +79,29 @@ export async function runPipelineWithRenderer(
       return {
         title: label,
         skip: index < startIndex ? 'skipped' : false,
-        task: async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        task: async (_ctx: unknown, task: any) => {
           currentPhase = phase;
           const runner = runners[phase];
           if (!runner) {
             throw new Error(`No runner defined for phase: ${phase}`);
           }
-          await runner();
+          // In verbose mode, route output through task.output so listr2 controls rendering
+          if (verbose) {
+            setOutputCallback((line: string) => { task.output = line; });
+          }
+          try {
+            await runner();
+          } finally {
+            if (verbose) {
+              setOutputCallback(undefined);
+            }
+          }
         },
         rendererOptions: {
           timer: PRESET_TIMER,
+          outputBar: verbose ? Infinity : false,
+          persistentOutput: false,
         },
       };
     }),

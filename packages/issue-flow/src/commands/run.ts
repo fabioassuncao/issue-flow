@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import { execa } from 'execa';
 import { PIPELINE_PHASES, PipelineManager, type PipelinePhase } from '../core/pipeline.js';
 import { isoNow, loadTaskPlan, saveTaskPlan } from '../core/state-manager.js';
+import { isVerbose } from '../core/verbose.js';
 import { formatDuration, printError, printInfo, printSuccess, printWarning } from '../ui/logger.js';
 import { runPipelineWithRenderer } from '../ui/pipeline-renderer.js';
 import { runAnalyze } from './analyze.js';
@@ -131,7 +132,7 @@ export async function runPipeline(issue: string, mode: string, from?: string): P
   const result = await runPipelineWithRenderer({
     phases: phaseOrder,
     startIndex: startIdx,
-    verbose: false,
+    verbose: isVerbose(),
     runners,
   });
 

@@ -2,7 +2,7 @@ import { createInterface } from 'node:readline';
 import chalk from 'chalk';
 import { execa } from 'execa';
 import { ElapsedTimer, createSpinner, formatDuration, getIcons, useColor } from '../ui/logger.js';
-import { isVerbose } from './verbose.js';
+import { getOutputCallback, isVerbose } from './verbose.js';
 
 export interface HeadlessOptions {
   prompt: string;
@@ -12,6 +12,8 @@ export interface HeadlessOptions {
   allowedTools?: string[];
   /** Status message displayed as spinner (non-verbose) or header (verbose). */
   statusMessage?: string;
+  /** Optional callback for routing verbose output (e.g., through listr2 task.output). When provided, verbose stream events are sent here instead of directly to stderr. */
+  onOutput?: (line: string) => void;
 }
 
 export interface HeadlessCost {
@@ -71,7 +73,7 @@ function shortPath(filePath: string | undefined): string {
 /**
  * Print a formatted stream event line to stderr.
  */
-function printStreamEvent(line: string, state: { turnCount: number }): void {
+function printStreamEvent(line: string, state: { turnCount: number }, onOutput?: (line: string) => void): void {
   let event: {
     type?: string;
     subtype?: string;
@@ -88,6 +90,7 @@ function printStreamEvent(line: string, state: { turnCount: number }): void {
 
   const icons = getIcons();
   const colored = useColor();
+  const emit = onOutput ?? ((msg: string) => process.stderr.write(`${msg}\n`));
 
   if (event.type === 'assistant' && event.message?.content) {
     state.turnCount++;
@@ -100,7 +103,7 @@ function printStreamEvent(line: string, state: { turnCount: number }): void {
           if (!textLine.trim()) continue;
           const prefix = colored ? chalk.dim(`  ${icons.connector}  `) : `  ${icons.connector}  `;
           const text = colored ? chalk.dim(textLine) : textLine;
-          process.stderr.write(`${prefix}${text}\n`);
+          emit(`${prefix}${text}`);
         }
       }
 
@@ -113,7 +116,7 @@ function printStreamEvent(line: string, state: { turnCount: number }): void {
         const toolLabel = colored ? chalk.cyan(toolName) : toolName;
         const contextText = context ? (colored ? chalk.dim(context) : context) : '';
 
-        process.stderr.write(`${prefix}${toolIcon} ${toolLabel} ${contextText}\n`);
+        emit(`${prefix}${toolIcon} ${toolLabel} ${contextText}`);
       }
     }
   }
@@ -130,21 +133,23 @@ async function runHeadlessVerbose(
   timeout: number,
   allowedTools?: string[],
   statusMessage?: string,
+  onOutput?: (line: string) => void,
 ): Promise<HeadlessResult> {
   const icons = getIcons();
   const colored = useColor();
+  const emit = onOutput ?? ((msg: string) => process.stderr.write(`${msg}\n`));
 
   // Print header
   if (statusMessage) {
     const msg = colored
       ? chalk.blue(`${icons.start} ${statusMessage}`)
       : `${icons.start} ${statusMessage}`;
-    process.stderr.write(`${msg}\n`);
+    emit(msg);
   }
 
   // Print opening connector
   const connectorLine = colored ? chalk.dim(`  ${icons.connector}`) : `  ${icons.connector}`;
-  process.stderr.write(`${connectorLine}\n`);
+  emit(connectorLine);
 
   const startTime = Date.now();
 
@@ -179,7 +184,7 @@ async function runHeadlessVerbose(
   if (subprocess.stdout) {
     const rl = createInterface({ input: subprocess.stdout });
     for await (const line of rl) {
-      printStreamEvent(line, state);
+      printStreamEvent(line, state, onOutput);
 
       try {
         const event = JSON.parse(line);
@@ -208,8 +213,8 @@ async function runHeadlessVerbose(
   const doneLine = colored
     ? chalk.dim(`  ${icons.connector}  ${chalk.italic(`Done in ${durationStr}`)}`)
     : `  ${icons.connector}  Done in ${durationStr}`;
-  process.stderr.write(`${doneLine}\n`);
-  process.stderr.write(`${connectorLine}\n`);
+  emit(doneLine);
+  emit(connectorLine);
 
   if (proc.exitCode !== 0 && !resultText) {
     const stderr = proc.stderr?.toString() ?? '';
@@ -252,10 +257,13 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
     outputFormat = 'json',
     allowedTools,
     statusMessage,
+    onOutput,
   } = options;
 
   if (isVerbose()) {
-    return runHeadlessVerbose(prompt, maxTurns, timeout, allowedTools, statusMessage);
+    // Use explicit onOutput, fall back to global output callback, or default to stderr
+    const effectiveOnOutput = onOutput ?? getOutputCallback();
+    return runHeadlessVerbose(prompt, maxTurns, timeout, allowedTools, statusMessage, effectiveOnOutput);
   }
 
   // Non-verbose: use spinner with elapsed timer
