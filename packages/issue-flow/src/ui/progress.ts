@@ -1,24 +1,6 @@
 import chalk from 'chalk';
 import type { UserStory } from '../types.js';
-import { formatDuration, getIcons } from './logger.js';
-
-/**
- * Check if color output is enabled.
- */
-function useColor(): boolean {
-  if (process.env.NO_COLOR === '1') return false;
-  if (!process.stdout.isTTY) return false;
-  return true;
-}
-
-/**
- * Check if unicode output is enabled.
- */
-function useUnicode(): boolean {
-  if (process.env.NO_COLOR === '1') return false;
-  if (!process.stdout.isTTY) return false;
-  return true;
-}
+import { formatDuration, getIcons, useColor, useUnicode } from './logger.js';
 
 /**
  * Print a visual progress bar showing passed/total stories.

@@ -1,21 +1,6 @@
 import chalk from 'chalk';
 import type { EngineConfig, TaskPlan } from '../types.js';
-import { formatDuration, getIcons, getTermWidth } from './logger.js';
-
-/**
- * Check if color/unicode output is enabled.
- */
-function useColor(): boolean {
-  if (process.env.NO_COLOR != null && process.env.NO_COLOR !== '') return false;
-  if (!process.stdout.isTTY) return false;
-  return true;
-}
-
-function useUnicode(): boolean {
-  if (process.env.NO_COLOR != null && process.env.NO_COLOR !== '') return false;
-  if (!process.stdout.isTTY) return false;
-  return true;
-}
+import { formatDuration, getIcons, getTermWidth, useColor, useUnicode } from './logger.js';
 
 /**
  * Truncate or pad a string to fit within a given width.
