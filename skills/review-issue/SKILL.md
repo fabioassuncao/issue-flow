@@ -199,7 +199,19 @@ The issue is considered **fully resolved** only when ALL of the following are tr
 - No regressions detected
 - Code follows the project's conventions and patterns
 
-### If RESOLVED:
+### Orchestrator Mode
+
+When the invocation args contain `--orchestrator` (e.g., `/review-issue #42 --orchestrator`):
+- **Do NOT close the issue automatically** — the orchestrator controls when to close.
+- **Do NOT add comments to the issue** — the orchestrator handles GitHub interactions.
+- **Only produce the structured report and the `<review-result>` block** (see below).
+
+**Detection**: Check if the string `--orchestrator` is present in the skill invocation arguments. If present, enable orchestrator mode. If absent, run in standalone mode.
+
+If invoked standalone (no `--orchestrator` flag):
+- Follow the standard behavior below (close issue if resolved, comment if not).
+
+### If RESOLVED (standalone mode only):
 
 Close the issue with a comment summarizing what was validated:
 
@@ -212,7 +224,7 @@ The closing comment should be in the same language as the issue and briefly stat
 - That tests pass
 - That no regressions were found
 
-### If NOT RESOLVED:
+### If NOT RESOLVED (standalone mode only):
 
 Do NOT close the issue. Instead, add a comment detailing what needs attention:
 
@@ -258,6 +270,39 @@ Brief description of the overall state.
 ## Conclusion
 {Clear final decision with justification}
 ```
+
+---
+
+## Structured Result Block (MANDATORY)
+
+**After the human-readable report, ALWAYS emit a machine-parseable result block.** This is used by the resolve-issue orchestrator to determine whether to enter the correction loop.
+
+### If APPROVED:
+
+```
+<review-result>
+STATUS: PASS
+</review-result>
+```
+
+### If REJECTED:
+
+```
+<review-result>
+STATUS: FAIL
+FINDINGS:
+- [US-XXX] Description of what failed or is missing
+- [US-YYY] Another issue found
+</review-result>
+```
+
+**Rules for the `<review-result>` block:**
+- Always emit it as the **last thing** in your output
+- Use `STATUS: PASS` only when the verdict is APPROVED
+- Use `STATUS: FAIL` for any other verdict (REJECTED, PARTIAL, etc.)
+- In the FINDINGS section, prefix each finding with the affected user story ID (`[US-XXX]`) when applicable
+- If a finding is not tied to a specific user story, use `[GENERAL]` as prefix
+- Each finding must be a single line
 
 ---
 

@@ -1,19 +1,69 @@
 # Issue Flow
 
-A collection of [agent skills](https://agentskills.io) for turning GitHub issues into executable work: create well-scoped issues, analyze them, generate PRDs, convert plans into structured task graphs, and implement them iteratively with quality checks or autonomous execution via Ralph.
+A collection of [agent skills](https://agentskills.io) and a **sub-agent orchestrator** for turning GitHub issues into executable work: create well-scoped issues, analyze them, generate PRDs, convert plans into structured task graphs, implement them iteratively, review with auto-correction, and deliver via Pull Request.
 
-## Skills
+## Architecture (v2.0)
 
-| Skill | Description |
-|-------|-------------|
-| [`generate-issue`](skills/generate-issue/) | Generates architect-quality GitHub issues from short instructions with duplicate detection and label management. |
-| [`resolve-issue`](skills/resolve-issue/) | Resolves a GitHub issue end-to-end: analysis, branch, PRD, task plan, and iterative implementation. Orchestrates all sub-skills. |
-| [`analyze-issue`](skills/analyze-issue/) | Analyzes a GitHub issue to extract context, scope, affected areas, and complexity. |
-| [`generate-prd`](skills/generate-prd/) | Generates a structured PRD with user stories, acceptance criteria, and functional requirements. |
-| [`convert-prd-to-json`](skills/convert-prd-to-json/) | Converts a PRD markdown file into a structured JSON task plan for autonomous execution. |
-| [`execute-tasks`](skills/execute-tasks/) | Iteratively implements user stories from a JSON task plan with quality checks and commits. |
-| [`create-pr`](skills/create-pr/) | Creates a Pull Request from the current branch with context from issue data, PRD, and git history. |
-| [`review-issue`](skills/review-issue/) | Reviews whether a GitHub issue has been fully resolved by analyzing the implementation, running tests, and checking for regressions. |
+Issue Flow uses a **sub-agent + skills** architecture:
+
+- **`resolve-issue`** is a Claude Code **sub-agent** (`.claude/agents/resolve-issue.md`) that orchestrates the full pipeline
+- All other components are **skills** preloaded into the sub-agent, callable without nesting
+- Three execution modes: `auto` (no stops), `semi_auto` (confirm before execution), `manual` (artifacts only)
+- Auto-correction loop: review finds issues → fix → re-review (up to 3 cycles)
+- Pipeline state tracking enables resumption from any phase
+
+### Skills vs Sub-agent: how they are invoked
+
+Skills and sub-agents are invoked differently in Claude Code:
+
+| | Skills | Sub-agent (`resolve-issue`) |
+|--|--------|---------------------------|
+| **Slash command** | `/skill-name` (e.g., `/generate-issue`, `/review-issue`) | Not available — sub-agents do not use `/` |
+| **@-mention** | Not available | `@"resolve-issue (agent)"` + instructions |
+| **Natural language** | Claude auto-invokes based on description | Claude auto-delegates based on description |
+| **Session-wide** | Not available | `claude --agent resolve-issue` |
+| **Headless** | `claude -p "/review-issue #42"` | `claude --agent resolve-issue -p "#42 --mode auto"` |
+
+> **Important**: The `resolve-issue` sub-agent is **not** a skill and cannot be invoked with `/resolve-issue`. Use `@"resolve-issue (agent)"` or natural language instead.
+
+## Components
+
+| Component | Type | Description |
+|-----------|------|-------------|
+| [`resolve-issue`](.claude/agents/resolve-issue.md) | **Sub-agent** | Orchestrates the full pipeline end-to-end with mode support and auto-correction loop. |
+| [`generate-issue`](skills/generate-issue/) | Skill | Generates architect-quality GitHub issues from short instructions with duplicate detection and label management. |
+| [`analyze-issue`](skills/analyze-issue/) | Skill | Analyzes a GitHub issue to extract context, scope, affected areas, and complexity. |
+| [`generate-prd`](skills/generate-prd/) | Skill | Generates a structured PRD with user stories, acceptance criteria, and functional requirements. |
+| [`convert-prd-to-json`](skills/convert-prd-to-json/) | Skill | Converts a PRD markdown file into a structured JSON task plan for autonomous execution. |
+| [`execute-tasks`](skills/execute-tasks/) | Skill | Iteratively implements user stories from a JSON task plan with quality checks and commits. |
+| [`create-pr`](skills/create-pr/) | Skill | Creates a Pull Request from the current branch with context from issue data, PRD, and git history. |
+| [`review-issue`](skills/review-issue/) | Skill | Reviews whether a GitHub issue has been fully resolved, with structured output for the correction loop. |
+
+## Execution Modes
+
+| Mode | Behavior | Use Case |
+|------|----------|----------|
+| `semi_auto` | Pauses before execution for confirmation (default) | Interactive development |
+| `auto` | Full pipeline without stops | Headless / CI / unattended |
+| `manual` | Generates artifacts only, no execution | Planning / review before coding |
+
+**Via @-mention (explicit):**
+```
+@"resolve-issue (agent)" #42
+@"resolve-issue (agent)" #42 --mode auto
+@"resolve-issue (agent)" #42 --mode manual
+```
+
+**Via natural language (Claude auto-delegates):**
+```
+Resolve issue #42
+Resolve issue #42 --mode auto
+```
+
+**Via headless CLI:**
+```bash
+claude --agent resolve-issue -p "#42 --mode auto"
+```
 
 ## End-to-End Workflow
 
@@ -21,28 +71,33 @@ A collection of [agent skills](https://agentskills.io) for turning GitHub issues
 flowchart TD
     A[Short instruction or bug report] --> B[generate-issue]
     B --> C[GitHub issue created]
-    C --> D[resolve-issue]
-    D --> E{Existing work already detected?}
-    E -- Yes --> E1[Continue or start fresh]
-    E1 --> F[analyze-issue]
+    C --> D["resolve-issue (sub-agent)"]
+    D --> E{Existing work detected?}
+    E -- Yes --> E1["Resume from pipeline state"]
+    E1 --> F
     E -- No --> F[analyze-issue]
     F --> G[Create branch issue/N-slug]
     G --> H[generate-prd<br/>issues/N/prd.md]
     H --> I[convert-prd-to-json<br/>issues/N/tasks.json]
-    I --> J{Proceed with development now?}
-    J -- Yes --> K[execute-tasks]
+    I --> J{"Mode gate"}
+    J -- "auto" --> K[execute-tasks]
+    J -- "semi_auto" --> J1{Proceed now?}
+    J1 -- Yes --> K
+    J1 -- No --> P[Stop and keep artifacts]
+    J -- "manual" --> P
     K --> L[Implement one story]
-    L --> M[Run checks, commit, update tasks.json and progress.txt]
+    L --> M[Run checks, commit, update tasks.json]
     M --> N{All stories pass?}
     N -- No --> L
-    N -- Yes --> O[Issue completed]
-    O -.-> R[create-pr<br/>Open Pull Request]
-    O --> V[review-issue]
-    V --> S{Fully resolved?}
-    S -- Yes --> T[Close issue]
-    S -- No --> U[Report missing items]
-    J -- No --> P[Stop and keep artifacts]
-    P --> Q[Later: resume with resolve-issue, execute-tasks, or optional ralph.sh]
+    N -- Yes --> V["review-issue<br/>(structured verdict)"]
+    V --> S{PASS or FAIL?}
+    S -- PASS --> R["create-pr<br/>Open Pull Request"]
+    R --> T["Close issue<br/>Pipeline complete"]
+    S -- FAIL --> W{"Correction cycle < 3?"}
+    W -- Yes --> X["Reset affected stories<br/>Re-execute + re-review"]
+    X --> V
+    W -- No --> Y[Stop and report to user]
+    P --> Q["Resume later: resolve-issue, execute-tasks, or ralph.sh"]
 ```
 
 ## Interactive Walkthrough
@@ -63,78 +118,80 @@ Output: a published GitHub issue that is ready to be planned and executed.
 </details>
 
 <details>
-<summary><strong>2. Plan the implementation with <code>resolve-issue</code></strong></summary>
+<summary><strong>2. Resolve the issue with the <code>resolve-issue</code> sub-agent</strong></summary>
 
-`resolve-issue` is the orchestrator. It advances automatically through the planning pipeline:
+`resolve-issue` is a **sub-agent** that orchestrates the full pipeline. It runs in an isolated context window with all skills preloaded.
 
-1. check for existing work in `issues/{N}/`
-2. analyze the issue with [`analyze-issue`](skills/analyze-issue/)
-3. create the working branch `issue/{N}-{slug}`
-4. generate the PRD with [`generate-prd`](skills/generate-prd/) into `issues/{N}/prd.md`
-5. convert the PRD into the executable task plan with [`convert-prd-to-json`](skills/convert-prd-to-json/) into `issues/{N}/tasks.json`
+**Planning phases (automatic):**
+1. Check for existing work and pipeline state in `issues/{N}/`
+2. Analyze the issue with `analyze-issue`
+3. Create the working branch `issue/{N}-{slug}`
+4. Generate PRD with `generate-prd` → `issues/{N}/prd.md`
+5. Convert to task plan with `convert-prd-to-json` → `issues/{N}/tasks.json`
 
-At this point the planning phase is complete and the issue is ready for development.
+**Mode-conditional gate:**
+- `auto`: skips confirmation, proceeds directly to execution
+- `semi_auto`: pauses for user confirmation
+- `manual`: stops here with artifacts saved
+
+**Execution phases (if proceeding):**
+6. Implement stories with `execute-tasks`
+7. Validate with `review-issue` (structured verdict)
+8. If FAIL: auto-correction loop (reset affected stories, re-execute, re-review — up to 3 cycles)
+9. If PASS: create PR with `create-pr` and close the issue
 </details>
 
 <details>
-<summary><strong>3. Decision point: start development now or stop with artifacts saved</strong></summary>
+<summary><strong>3. Auto-correction loop (new in v2.0)</strong></summary>
 
-After the PRD and JSON task plan are ready, `resolve-issue` asks only one thing:
+After execution completes, the sub-agent automatically invokes `review-issue` which produces a structured verdict:
 
-`Do you want to proceed with development now?`
+- **PASS**: All requirements met, tests pass, no regressions → proceeds to create PR
+- **FAIL**: Returns findings with affected user story IDs → enters correction loop
 
-- If the answer is yes, it invokes [`execute-tasks`](skills/execute-tasks/) and enters the implementation loop.
-- If the answer is no, it stops cleanly and keeps the generated artifacts:
-  - `issues/{N}/prd.md`
-  - `issues/{N}/tasks.json`
-  - the branch `issue/{N}-{slug}`
+The correction loop:
+1. Saves review findings to `issues/{N}/review-findings.md`
+2. Resets affected stories in `tasks.json` (`passes: false`)
+3. Re-invokes `execute-tasks` to fix the issues
+4. Re-invokes `review-issue` to validate the fixes
+5. Repeats up to `maxCorrectionCycles` (default: 3) times
+6. After 3 failed cycles, stops and reports to the user
 
-This is the handoff point between planning and development.
+This eliminates the need for manual back-and-forth between implementation and review.
 </details>
 
 <details>
-<summary><strong>4. Development loop: <code>execute-tasks</code> or optional <code>ralph.sh</code></strong></summary>
+<summary><strong>4. Pipeline resumption</strong></summary>
 
-From the saved task plan, there are three ways to continue later:
+The `tasks.json` file tracks pipeline state:
 
-- run `resolve-issue` again and let it resume
-- invoke [`execute-tasks`](skills/execute-tasks/) directly
-- run [`scripts/ralph/ralph.sh`](scripts/ralph/) for unattended autonomous execution
+```json
+{
+  "pipeline": {
+    "analyzeCompleted": true,
+    "prdCompleted": true,
+    "jsonCompleted": true,
+    "executionCompleted": false,
+    "reviewCompleted": false,
+    "prCreated": false
+  }
+}
+```
 
-Both `execute-tasks` and Ralph consume the same planning artifacts. The difference is orchestration:
-
-- `execute-tasks` runs inside the skill flow
-- `ralph.sh` is an external loop that repeatedly launches fresh Claude Code sessions until all stories pass or a stop condition is hit
+When re-invoking `resolve-issue`, the sub-agent reads these flags and resumes from the last incomplete phase. In `auto` mode, this happens without any user interaction.
 </details>
 
 <details>
-<summary><strong>5. Open a Pull Request with <code>create-pr</code></strong></summary>
+<summary><strong>5. Ralph Loop for large task plans</strong></summary>
 
-After all stories pass and the implementation is complete, use [`create-pr`](skills/create-pr/) to open a Pull Request directly from the working branch.
+For issues with many user stories (10+), the Ralph Loop is an alternative to the built-in `execute-tasks`. It runs fresh Claude Code sessions per story, avoiding context window exhaustion.
 
-`create-pr` automatically:
-- detects the current branch and extracts the issue number from the `issue/{N}-*` pattern
-- collects context from the GitHub issue, `issues/{N}/prd.md`, `issues/{N}/tasks.json`, and git history
-- checks for existing open PRs on the same branch to avoid duplicates
-- creates a PR with a structured description (summary, changes, user stories, review checklist) and links it to the issue with `Closes #N`
+Ralph is **not** a replacement for the pipeline — it replaces only the execution phase. Use it after planning is complete:
 
-This step is optional — you can always create the PR manually if you prefer.
-</details>
+1. Invoke `@"resolve-issue (agent)" #42 --mode manual` to generate artifacts
+2. Run `./scripts/ralph/ralph.sh --issue 42` to execute with context-reset per iteration
 
-<details>
-<summary><strong>6. Validate the resolution with <code>review-issue</code></strong></summary>
-
-After implementation, `review-issue` validates that the issue was actually resolved:
-
-1. fetches the issue context and linked PRs
-2. detects the project stack
-3. traces all code changes related to the issue
-4. maps each acceptance criterion to specific code changes
-5. runs the project's test suite
-6. checks for regressions in shared code
-7. produces a structured verdict: **APPROVED** or **REJECTED**
-
-If every requirement is met, tests pass, and no regressions are detected, the skill closes the issue with a summary comment. Otherwise, it adds a detailed comment describing what still needs attention.
+Both `execute-tasks` and Ralph consume the same `tasks.json` format.
 </details>
 
 ## Ralph (Advanced / Optional)
@@ -172,9 +229,9 @@ If those artifacts do not already exist, the script stops with an error.
 
 Run Ralph only after the planning pipeline is finished. In the normal flow, that means:
 
-1. run `resolve-issue` for the target issue
+1. invoke the `resolve-issue` sub-agent for the target issue (via `@"resolve-issue (agent)" #N --mode manual` or natural language)
 2. let it complete analysis, branch creation, PRD generation, and JSON task-plan generation
-3. answer "no" when asked whether to proceed with development now, so the flow stops but preserves the artifacts
+3. in `manual` mode it stops automatically; in `semi_auto` mode answer "no" when asked whether to proceed
 4. verify these inputs exist:
    - `issues/{N}/prd.md`
    - `issues/{N}/tasks.json`
@@ -216,23 +273,57 @@ All artifacts for a given issue are stored under `issues/{ISSUE_NUMBER}/`:
 ```
 issues/
 └── 42/
-    ├── prd.md           # PRD (human-readable)
-    ├── tasks.json       # Task plan + issue execution state
-    ├── progress.txt     # Progress log
-    └── archive/         # Archived previous runs
+    ├── prd.md                # PRD (human-readable)
+    ├── tasks.json            # Task plan + pipeline state + execution state
+    ├── progress.txt          # Progress log (append-only)
+    ├── review-findings.md    # Review findings (if correction loop ran)
+    └── archive/              # Archived previous runs
+```
+
+## Headless / CI Usage
+
+```bash
+# Full pipeline, no stops (sub-agent)
+claude --agent resolve-issue -p "#42 --mode auto"
+
+# Planning only (sub-agent)
+claude --agent resolve-issue -p "#42 --mode manual"
+
+# Individual skills (headless)
+claude -p "/execute-tasks for issue #42"
+claude -p "/review-issue #42"
+claude -p "/create-pr for issue #42"
+
+# Execute with context-reset (many stories)
+./scripts/ralph/ralph.sh --issue 42
 ```
 
 ## Quick Start
 
+**Skills (slash command):**
 ```
-Create an issue for adding rate limiting to the API
+/generate-issue Add rate limiting to the API
 
+/review-issue #42
+
+/execute-tasks for issue #42
+```
+
+**Sub-agent (@-mention):**
+```
+@"resolve-issue (agent)" #42
+
+@"resolve-issue (agent)" #42 --mode auto
+```
+
+**Sub-agent (natural language — Claude auto-delegates):**
+```
 Resolve issue #42
 
-Review issue #42
+Fix issue #42 in auto mode
 ```
 
-See the [`resolve-issue` README](skills/resolve-issue/) for the complete pipeline documentation, or each skill's README for standalone usage.
+See each skill's README for standalone usage.
 
 ## Requirements
 
@@ -241,7 +332,18 @@ See the [`resolve-issue` README](skills/resolve-issue/) for the complete pipelin
 
 ## Installation
 
-### As a Claude Code Plugin
+Issue Flow v2.0 has two types of components with different installation methods:
+
+| Component | Type | Portable | Claude Code required |
+|-----------|------|----------|---------------------|
+| `analyze-issue`, `generate-prd`, `convert-prd-to-json`, `execute-tasks`, `create-pr`, `review-issue`, `generate-issue` | Skills (`skills/`) | Yes — works with any tool that supports [Agent Skills](https://agentskills.io) | No |
+| `resolve-issue` (orchestrator) | Sub-agent (`.claude/agents/`) | **No** — exclusive to Claude Code | **Yes** |
+
+### Full installation (Claude Code) — recommended
+
+Installs everything: the sub-agent orchestrator + all skills. This is the only way to get the full pipeline with modes, auto-correction loop, and pipeline resumption.
+
+**As a plugin:**
 
 ```bash
 # 1. Add the marketplace
@@ -251,27 +353,63 @@ See the [`resolve-issue` README](skills/resolve-issue/) for the complete pipelin
 /plugin install issue-flow@issue-flow-marketplace
 ```
 
-Once installed, skills are namespaced under `issue-flow:` (e.g., `/issue-flow:resolve-issue`).
+**Manual (sub-agent only):**
 
-To test locally during development:
+The sub-agent lives at `.claude/agents/resolve-issue.md` and is **not** distributed via `npx skills` or plugin marketplaces that only support skills. To install it manually:
+
+```bash
+# From your project root
+mkdir -p .claude/agents
+curl -sSL https://raw.githubusercontent.com/fabioassuncao/issue-flow/main/.claude/agents/resolve-issue.md \
+  -o .claude/agents/resolve-issue.md
+```
+
+The sub-agent also requires the skills it orchestrates to be installed (see below).
+
+**Local development:**
 
 ```bash
 claude --plugin-dir ./issue-flow
 ```
 
-### Using [skills.sh](https://skills.sh/)
+### Skills only (any Agent Skills-compatible tool)
+
+If you use a tool other than Claude Code (or prefer to use skills individually without the orchestrator), install only the skills:
+
+**Using [skills.sh](https://skills.sh/):**
 
 ```bash
-# GitHub shorthand
+# All skills
 npx skills add fabioassuncao/issue-flow
 
 # A specific skill only
 npx skills add fabioassuncao/issue-flow --skill generate-issue
 ```
 
-### Manual
+**Manual:**
 
-1. Download the desired skill folder from this repository.
+1. Download the desired skill folder from `skills/` in this repository.
 2. Copy it into your project's `.claude/skills/` directory.
 
-After installation, the skills are automatically available in any tool that supports Agent Skills.
+Skills are automatically available in any tool that supports Agent Skills.
+
+### What works without the sub-agent
+
+Without the `resolve-issue` sub-agent, each skill can still be used independently:
+
+| Capability | Available without sub-agent? |
+|-----------|------------------------------|
+| Create issues (`generate-issue`) | Yes |
+| Analyze issues (`analyze-issue`) | Yes |
+| Generate PRDs (`generate-prd`) | Yes |
+| Convert PRD to JSON (`convert-prd-to-json`) | Yes |
+| Execute tasks (`execute-tasks`) | Yes |
+| Create PRs (`create-pr`) | Yes |
+| Review issues (`review-issue`) | Yes |
+| Ralph Loop (`ralph.sh`) | Yes |
+| **Full orchestrated pipeline** | **No — requires sub-agent** |
+| **Execution modes (auto/semi_auto/manual)** | **No — requires sub-agent** |
+| **Auto-correction loop** | **No — requires sub-agent** |
+| **Pipeline state resumption** | **No — requires sub-agent** |
+
+Without the sub-agent, you can still run the full workflow manually by invoking each skill in sequence, or use Ralph for the execution phase.

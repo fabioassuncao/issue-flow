@@ -673,6 +673,7 @@ mark_issue_completed() {
     | .completedAt = \"$timestamp\"
     | .lastAttemptAt = \"$timestamp\"
     | .lastError = null
+    | if .pipeline then .pipeline.executionCompleted = true else . end
   "
 }
 
@@ -682,6 +683,16 @@ initialize_task_plan_state() {
     | .completedAt = (.completedAt // null)
     | .lastAttemptAt = (.lastAttemptAt // null)
     | .lastError = (.lastError // null)
+    | .correctionCycle = (.correctionCycle // 0)
+    | .maxCorrectionCycles = (.maxCorrectionCycles // 3)
+    | .pipeline = (.pipeline // {
+        "analyzeCompleted": false,
+        "prdCompleted": false,
+        "jsonCompleted": false,
+        "executionCompleted": false,
+        "reviewCompleted": false,
+        "prCreated": false
+      })
   '
 }
 

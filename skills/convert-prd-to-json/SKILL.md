@@ -29,6 +29,16 @@ Read `issues/{ISSUE_NUMBER}/prd.md` and convert it to `issues/{ISSUE_NUMBER}/tas
   "completedAt": null,
   "lastAttemptAt": null,
   "lastError": null,
+  "correctionCycle": 0,
+  "maxCorrectionCycles": 3,
+  "pipeline": {
+    "analyzeCompleted": false,
+    "prdCompleted": false,
+    "jsonCompleted": false,
+    "executionCompleted": false,
+    "reviewCompleted": false,
+    "prCreated": false
+  },
   "userStories": [
     {
       "id": "US-001",
@@ -59,6 +69,8 @@ Read `issues/{ISSUE_NUMBER}/prd.md` and convert it to `issues/{ISSUE_NUMBER}/tas
 6. **Always verify**: Every story has "Typecheck passes" as the last acceptance criterion
 7. **Always verify**: UI stories have "Verify in browser using playwright-cli if available; otherwise use the playwright MCP/skill" as acceptance criterion
 8. **Initialize issue execution state**: `"issueStatus": "pending"`, `"completedAt": null`, `"lastAttemptAt": null`, `"lastError": null`
+9. **Initialize pipeline tracking**: `"correctionCycle": 0`, `"maxCorrectionCycles": 3`, and `"pipeline"` object with all flags set to `false`. The pipeline object tracks which phases of the resolve-issue orchestrator have completed, enabling resumption from any point.
+10. **Set `pipeline.jsonCompleted` to `true`** immediately after writing tasks.json, since this conversion step itself is the JSON completion phase.
 
 ---
 
@@ -157,6 +169,9 @@ Estimated complexity: Medium
 - [ ] All stories have `"notes": ""`
 - [ ] `issueStatus` is `"pending"`
 - [ ] `completedAt`, `lastAttemptAt`, and `lastError` are `null`
+- [ ] `correctionCycle` is `0`
+- [ ] `maxCorrectionCycles` is `3`
+- [ ] `pipeline` object present with `jsonCompleted` set to `true` and all other flags set to `false`
 - [ ] Stories ordered by dependency (schema → backend → UI)
 - [ ] Every story has "Typecheck passes" as a criterion
 - [ ] UI stories have browser verification criterion

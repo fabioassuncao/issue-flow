@@ -4,16 +4,16 @@
     "name": "fabioassuncao"
   },
   "metadata": {
-    "description": "GitHub issue resolution pipeline: analyze issues, generate PRDs, create task plans, and implement user stories autonomously",
-    "version": "1.0.0"
+    "description": "GitHub issue resolution pipeline with sub-agent orchestration, auto-correction loop, and multi-mode execution (auto/semi_auto/manual)",
+    "version": "2.0.0"
   },
   "plugins": [
     {
       "name": "issue-flow",
       "source": "./",
-      "description": "End-to-end GitHub issue resolution with architect-quality issue creation, PRD generation, task planning, autonomous implementation, and post-implementation review",
-      "version": "1.0.0",
-      "keywords": ["github", "issues", "prd", "automation", "task-planning", "code-generation", "review"],
+      "description": "End-to-end GitHub issue resolution with sub-agent orchestration, architect-quality issue creation, PRD generation, task planning, autonomous implementation, review with auto-correction loop, and PR creation",
+      "version": "2.0.0",
+      "keywords": ["github", "issues", "prd", "automation", "task-planning", "code-generation", "review", "sub-agent", "orchestration"],
       "category": "productivity",
       "skills": "./skills/"
     }

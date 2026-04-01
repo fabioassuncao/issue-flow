@@ -88,6 +88,17 @@ For any story that changes UI, verify it works in the browser if you have browse
 
 If no browser tools are available, note in your progress report that manual browser verification is needed.
 
+## Pipeline State Tracking
+
+The task plan may contain a `pipeline` object that tracks orchestrator phase completion. When running through Ralph (outside the orchestrator), update these fields as appropriate:
+
+- After completing a story: set `pipeline.executionCompleted` to `false` (still in progress)
+- After ALL stories complete: set `pipeline.executionCompleted` to `true`
+
+The task plan may also contain `correctionCycle` and `maxCorrectionCycles` fields. These track how many review-fix cycles have occurred. Ralph does not manage the correction loop — that is handled by the orchestrator or manually.
+
+If these fields don't exist in the task plan (older format), ignore them — they are optional.
+
 ## Stop Condition
 
 After completing a user story, check if ALL stories have `passes: true`.
@@ -97,6 +108,7 @@ If ALL stories are complete and passing, first update the task plan metadata:
 - Set `completedAt` to the current ISO timestamp
 - Set `lastAttemptAt` to the current ISO timestamp
 - Clear `lastError`
+- If `pipeline` object exists, set `pipeline.executionCompleted` to `true`
 
 Then reply with:
 <promise>COMPLETE</promise>
