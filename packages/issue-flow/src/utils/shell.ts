@@ -1,4 +1,4 @@
-import { execa, type Options as ExecaOptions } from 'execa';
+import { type Options as ExecaOptions, execa } from 'execa';
 
 export interface ExecResult {
   stdout: string;

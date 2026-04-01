@@ -1,8 +1,8 @@
-import { join } from 'node:path';
 import { platform } from 'node:os';
-import { run } from './utils/shell.js';
-import { getProjectRoot } from './utils/git.js';
+import { join } from 'node:path';
 import type { RalphConfig, ResolvedPaths } from './types.js';
+import { getProjectRoot } from './utils/git.js';
+import { run } from './utils/shell.js';
 
 /**
  * Default configuration values — matching the Bash script exactly.
@@ -97,9 +97,7 @@ export async function validateDependencies(): Promise<string[]> {
   // Check claude
   const claudeResult = await run('claude', ['--version']);
   if (claudeResult.exitCode !== 0) {
-    errors.push(
-      '  - claude  (install with: npm install -g @anthropic-ai/claude-code)',
-    );
+    errors.push('  - claude  (install with: npm install -g @anthropic-ai/claude-code)');
   }
 
   // Note: jq is NOT required — the TypeScript CLI handles JSON natively

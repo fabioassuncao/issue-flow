@@ -7,7 +7,7 @@ import { printError } from './ui/logger.js';
  */
 function parseInteger(value: string): number {
   const parsed = parseInt(value, 10);
-  if (isNaN(parsed) || parsed < 0) {
+  if (Number.isNaN(parsed) || parsed < 0) {
     throw new InvalidArgumentError('Must be a non-negative integer.');
   }
   return parsed;
@@ -95,24 +95,33 @@ program
   .description('Run the iterative story execution loop (issue-flow engine)')
   .option('--issue <number>', 'Issue number — reads artifacts from issues/N/')
   .option('--max-iterations <number>', 'Stop after N iterations', parseInteger)
-  .option('--retry-limit <number>', 'Retry transient Claude failures up to N consecutive times', parseInteger)
+  .option(
+    '--retry-limit <number>',
+    'Retry transient Claude failures up to N consecutive times',
+    parseInteger,
+  )
   .option('--retry-forever', 'Retry transient Claude failures indefinitely')
   .argument('[max-iterations]', 'Backward-compatible alias for --max-iterations N', parseInteger)
-  .action(async (positionalMaxIter: number | undefined, options: {
-    issue?: string;
-    maxIterations?: number;
-    retryLimit?: number;
-    retryForever?: boolean;
-  }) => {
-    try {
-      const { runExecute } = await import('./commands/execute.js');
-      const code = await runExecute(positionalMaxIter, options);
-      process.exit(code);
-    } catch (error) {
-      printError(error instanceof Error ? error.message : String(error));
-      process.exit(1);
-    }
-  });
+  .action(
+    async (
+      positionalMaxIter: number | undefined,
+      options: {
+        issue?: string;
+        maxIterations?: number;
+        retryLimit?: number;
+        retryForever?: boolean;
+      },
+    ) => {
+      try {
+        const { runExecute } = await import('./commands/execute.js');
+        const code = await runExecute(positionalMaxIter, options);
+        process.exit(code);
+      } catch (error) {
+        printError(error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+    },
+  );
 
 // ── review ──────────────────────────────────────────────────────────────────
 program

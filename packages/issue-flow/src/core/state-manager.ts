@@ -1,9 +1,9 @@
-import { readFile, writeFile, rename, mkdtemp } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
+import { mkdtemp, readFile, rename, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { ZodError } from 'zod';
 import { taskPlanSchema } from '../schemas.js';
-import type { TaskPlan, LastError, PipelineState } from '../types.js';
+import type { LastError, PipelineState, TaskPlan } from '../types.js';
 
 /**
  * Get the current ISO timestamp.
@@ -24,9 +24,7 @@ export async function loadTaskPlan(path: string): Promise<TaskPlan> {
     return taskPlanSchema.parse(raw) as TaskPlan;
   } catch (err) {
     if (err instanceof ZodError) {
-      const issues = err.issues
-        .map((i) => `  - ${i.path.join('.')}: ${i.message}`)
-        .join('\n');
+      const issues = err.issues.map((i) => `  - ${i.path.join('.')}: ${i.message}`).join('\n');
       throw new Error(`Invalid tasks.json at ${path}:\n${issues}`);
     }
     throw err;
@@ -37,15 +35,12 @@ export async function loadTaskPlan(path: string): Promise<TaskPlan> {
  * Save a TaskPlan to disk atomically (write-to-temp + rename).
  * This prevents corruption if the process is interrupted during write.
  */
-export async function saveTaskPlan(
-  path: string,
-  plan: TaskPlan,
-): Promise<void> {
-  const dir = dirname(path);
+export async function saveTaskPlan(path: string, plan: TaskPlan): Promise<void> {
+  const _dir = dirname(path);
   const tmpDir = await mkdtemp(join(tmpdir(), 'issue-flow-task-plan-'));
   const tmpFile = join(tmpDir, 'tasks.json');
 
-  await writeFile(tmpFile, JSON.stringify(plan, null, 2) + '\n', 'utf-8');
+  await writeFile(tmpFile, `${JSON.stringify(plan, null, 2)}\n`, 'utf-8');
   await rename(tmpFile, path);
 }
 
@@ -71,9 +66,7 @@ export function initializeState(plan: TaskPlan): TaskPlan {
     lastError: plan.lastError ?? null,
     correctionCycle: plan.correctionCycle ?? 0,
     maxCorrectionCycles: plan.maxCorrectionCycles ?? 3,
-    pipeline: plan.pipeline
-      ? { ...defaultPipeline, ...plan.pipeline }
-      : defaultPipeline,
+    pipeline: plan.pipeline ? { ...defaultPipeline, ...plan.pipeline } : defaultPipeline,
   };
 }
 
@@ -104,10 +97,7 @@ export function markStoryPassing(plan: TaskPlan, storyId: string): TaskPlan {
 /**
  * Mark the issue as in_progress.
  */
-export function markIssueInProgress(
-  plan: TaskPlan,
-  timestamp?: string,
-): TaskPlan {
+export function markIssueInProgress(plan: TaskPlan, timestamp?: string): TaskPlan {
   const ts = timestamp ?? isoNow();
   return {
     ...plan,
@@ -128,20 +118,14 @@ export function markIssueCompleted(plan: TaskPlan): TaskPlan {
     completedAt: ts,
     lastAttemptAt: ts,
     lastError: null,
-    pipeline: plan.pipeline
-      ? { ...plan.pipeline, executionCompleted: true }
-      : plan.pipeline,
+    pipeline: plan.pipeline ? { ...plan.pipeline, executionCompleted: true } : plan.pipeline,
   };
 }
 
 /**
  * Set the lastError field on the task plan.
  */
-export function setLastError(
-  plan: TaskPlan,
-  category: string,
-  message: string,
-): TaskPlan {
+export function setLastError(plan: TaskPlan, category: string, message: string): TaskPlan {
   const ts = isoNow();
   const error: LastError = {
     category,
@@ -160,10 +144,7 @@ export function setLastError(
  * Clear the lastError field, but only if it was set before the attempt started.
  * This prevents clearing errors that were set during the current attempt.
  */
-export function clearLastError(
-  plan: TaskPlan,
-  attemptStartedAt: string,
-): TaskPlan {
+export function clearLastError(plan: TaskPlan, attemptStartedAt: string): TaskPlan {
   const ts = isoNow();
 
   // If the error was set after the attempt started, keep it

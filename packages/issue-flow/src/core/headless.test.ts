@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { runHeadless } from './headless.js';
 
 // Mock execa
@@ -7,6 +7,7 @@ vi.mock('execa', () => ({
 }));
 
 import { execa } from 'execa';
+
 const mockExeca = vi.mocked(execa);
 
 describe('runHeadless', () => {

@@ -1,7 +1,6 @@
-import { join } from 'node:path';
 import { createConfig, resolvePaths, validateDependencies } from '../config.js';
 import { runEngine } from '../core/engine.js';
-import { loadTaskPlan, saveTaskPlan, allStoriesPass } from '../core/state-manager.js';
+import { allStoriesPass, loadTaskPlan, saveTaskPlan } from '../core/state-manager.js';
 import { printError } from '../ui/logger.js';
 
 export interface ExecuteOptions {

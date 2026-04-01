@@ -1,21 +1,17 @@
 import { join } from 'node:path';
 import { execa } from 'execa';
-import { PipelineManager, PIPELINE_PHASES, type PipelinePhase } from '../core/pipeline.js';
-import { loadTaskPlan, saveTaskPlan, isoNow } from '../core/state-manager.js';
-import { runInit } from './init.js';
+import { PIPELINE_PHASES, PipelineManager, type PipelinePhase } from '../core/pipeline.js';
+import { isoNow, loadTaskPlan, saveTaskPlan } from '../core/state-manager.js';
+import { printError, printInfo, printSuccess, printWarning } from '../ui/logger.js';
 import { runAnalyze } from './analyze.js';
-import { runPrd } from './prd.js';
-import { runPlan } from './plan.js';
 import { runExecute } from './execute.js';
-import { runReview } from './review.js';
+import { runInit } from './init.js';
+import { runPlan } from './plan.js';
 import { runPr } from './pr.js';
-import { printSuccess, printError, printInfo, printWarning } from '../ui/logger.js';
+import { runPrd } from './prd.js';
+import { runReview } from './review.js';
 
-export async function runPipeline(
-  issue: string,
-  mode: string,
-  from?: string,
-): Promise<number> {
+export async function runPipeline(issue: string, mode: string, from?: string): Promise<number> {
   const issueNumber = issue.replace(/^#/, '');
   const issueDir = join('issues', issueNumber);
   const tasksPath = join(issueDir, 'tasks.json');
@@ -97,7 +93,9 @@ export async function runPipeline(
         try {
           const plan = await loadTaskPlan(tasksPath);
           maxCycles = plan.maxCorrectionCycles;
-        } catch { /* use default */ }
+        } catch {
+          /* use default */
+        }
 
         code = await runReview(issueNumber);
 
@@ -112,7 +110,9 @@ export async function runPipeline(
             const plan = await loadTaskPlan(tasksPath);
             plan.correctionCycle = cycle;
             await saveTaskPlan(tasksPath, plan);
-          } catch { /* non-critical */ }
+          } catch {
+            /* non-critical */
+          }
 
           // Re-execute
           const execCode = await runExecute(undefined, { issue: issueNumber });
@@ -162,14 +162,18 @@ export async function runPipeline(
     if (parsed[0]?.url) {
       prUrl = parsed[0].url;
     }
-  } catch { /* non-critical */ }
+  } catch {
+    /* non-critical */
+  }
 
   // Get branch and story count
   let branchName = 'unknown';
   try {
     const proc = await execa('git', ['branch', '--show-current'], { reject: false });
     branchName = proc.stdout?.toString().trim() ?? 'unknown';
-  } catch { /* non-critical */ }
+  } catch {
+    /* non-critical */
+  }
 
   let storyCount = 0;
   try {
@@ -181,7 +185,9 @@ export async function runPipeline(
     plan.completedAt = isoNow();
     plan.lastAttemptAt = isoNow();
     await saveTaskPlan(tasksPath, plan);
-  } catch { /* non-critical */ }
+  } catch {
+    /* non-critical */
+  }
 
   console.log('');
   printSuccess(`Pipeline complete for issue #${issueNumber}!`);

@@ -2,7 +2,7 @@ import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { runHeadless } from '../core/headless.js';
 import { loadTaskPlan, saveTaskPlan } from '../core/state-manager.js';
-import { printSuccess, printError, printInfo } from '../ui/logger.js';
+import { printError, printInfo, printSuccess } from '../ui/logger.js';
 
 export async function runPrd(issue: string): Promise<number> {
   const issueNumber = issue.replace(/^#/, '');

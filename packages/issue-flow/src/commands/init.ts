@@ -1,5 +1,5 @@
 import { execa } from 'execa';
-import { printSuccess, printError, printInfo } from '../ui/logger.js';
+import { printError, printInfo, printSuccess } from '../ui/logger.js';
 
 interface CheckResult {
   name: string;

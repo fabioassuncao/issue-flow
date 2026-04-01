@@ -1,9 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
+  headlessResultSchema,
+  pipelineStateSchema,
   taskPlanSchema,
   userStorySchema,
-  pipelineStateSchema,
-  headlessResultSchema,
 } from './schemas.js';
 
 function validTaskPlan() {

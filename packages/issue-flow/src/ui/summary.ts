@@ -1,18 +1,18 @@
 import chalk from 'chalk';
-import type { TaskPlan, RalphConfig } from '../types.js';
+import type { RalphConfig, TaskPlan } from '../types.js';
 import { getIcons, getTermWidth } from './logger.js';
 
 /**
  * Check if color/unicode output is enabled.
  */
 function useColor(): boolean {
-  if (process.env['NO_COLOR'] === '1') return false;
+  if (process.env.NO_COLOR === '1') return false;
   if (!process.stdout.isTTY) return false;
   return true;
 }
 
 function useUnicode(): boolean {
-  if (process.env['NO_COLOR'] === '1') return false;
+  if (process.env.NO_COLOR === '1') return false;
   if (!process.stdout.isTTY) return false;
   return true;
 }
@@ -66,7 +66,7 @@ export function printBox(lines: string[]): void {
   const hrule = h.repeat(maxContentWidth + 2);
 
   const blue = colored ? chalk.blue : (s: string) => s;
-  const reset = (s: string) => s;
+  const _reset = (s: string) => s;
 
   // Top border
   console.log(blue(`${tl}${hrule}${tr}`));
@@ -88,23 +88,17 @@ export function printBox(lines: string[]): void {
 /**
  * Print the startup header box showing Ralph configuration.
  */
-export function printStartupHeader(
-  config: RalphConfig,
-  plan: TaskPlan,
-): void {
+export function printStartupHeader(config: RalphConfig, plan: TaskPlan): void {
   const icons = getIcons();
 
   const storiesTotal = plan.userStories.length;
   const storiesPassing = plan.userStories.filter((s) => s.passes).length;
   const branchName = plan.branchName ?? 'N/A';
 
-  const issueLabel = config.issueNumber
-    ? `Issue #${config.issueNumber}`
-    : 'Standalone mode';
+  const issueLabel = config.issueNumber ? `Issue #${config.issueNumber}` : 'Standalone mode';
 
-  const maxIterLabel = config.maxIterations !== undefined
-    ? String(config.maxIterations)
-    : 'unlimited';
+  const maxIterLabel =
+    config.maxIterations !== undefined ? String(config.maxIterations) : 'unlimited';
 
   const retryLabel = config.retryForever
     ? 'unlimited retries'

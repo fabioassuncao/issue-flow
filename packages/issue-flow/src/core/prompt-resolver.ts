@@ -1,7 +1,7 @@
-import { readFile, writeFile, rm, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const REMOTE_URL =
   'https://raw.githubusercontent.com/fabioassuncao/issue-flow/main/scripts/ralph/prompt.md';
@@ -28,9 +28,7 @@ interface ResolvedPrompt {
  * 2. projectRoot/scripts/ralph/prompt.md
  * 3. Download from GitHub
  */
-export async function resolvePrompt(
-  options: PromptResolverOptions,
-): Promise<ResolvedPrompt> {
+export async function resolvePrompt(options: PromptResolverOptions): Promise<ResolvedPrompt> {
   // Try local paths first
   const localPaths = [
     options.scriptDir ? join(options.scriptDir, 'prompt.md') : null,
@@ -78,10 +76,7 @@ export async function resolvePrompt(
 /**
  * Replace placeholders in the prompt template with actual file paths.
  */
-export function applyPlaceholders(
-  template: string,
-  vars: Record<string, string>,
-): string {
+export function applyPlaceholders(template: string, vars: Record<string, string>): string {
   let result = template;
   for (const [key, value] of Object.entries(vars)) {
     result = result.replaceAll(key, value);

@@ -1,35 +1,25 @@
 import { existsSync } from 'node:fs';
-import { readFile, writeFile, mkdir, cp } from 'node:fs/promises';
+import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { RalphConfig, ResolvedPaths, TaskPlan } from '../types.js';
-import {
-  loadTaskPlan,
-  saveTaskPlan,
-  initializeState,
-  allStoriesPass,
-  markIssueInProgress,
-  markIssueCompleted,
-  setLastError,
-  clearLastError,
-  isoNow,
-  trimErrorMessage,
-} from './state-manager.js';
-import {
-  resolvePrompt,
-  applyPlaceholders,
-  cleanupPromptTmp,
-} from './prompt-resolver.js';
-import { executeClaude } from './executor.js';
-import { isTransientFailure, retryDelaySeconds } from '../utils/retry.js';
-import {
-  printSuccess,
-  printError,
-  printWarning,
-  printRetry,
-  printInfo,
-} from '../ui/logger.js';
+import { printError, printInfo, printRetry, printSuccess, printWarning } from '../ui/logger.js';
 import { printIterationHeader } from '../ui/progress.js';
 import { printStartupHeader, printSummaryBox } from '../ui/summary.js';
+import { isTransientFailure, retryDelaySeconds } from '../utils/retry.js';
+import { executeClaude } from './executor.js';
+import { applyPlaceholders, cleanupPromptTmp, resolvePrompt } from './prompt-resolver.js';
+import {
+  allStoriesPass,
+  clearLastError,
+  initializeState,
+  isoNow,
+  loadTaskPlan,
+  markIssueCompleted,
+  markIssueInProgress,
+  saveTaskPlan,
+  setLastError,
+  trimErrorMessage,
+} from './state-manager.js';
 
 /**
  * Sleep for a given number of seconds.
@@ -51,10 +41,7 @@ async function ensureProgressFile(progressFile: string): Promise<void> {
 /**
  * Archive previous run artifacts if the branch has changed.
  */
-async function archiveIfBranchChanged(
-  plan: TaskPlan,
-  paths: ResolvedPaths,
-): Promise<void> {
+async function archiveIfBranchChanged(plan: TaskPlan, paths: ResolvedPaths): Promise<void> {
   const { lastBranchFile, archiveDir, prdFile, progressFile } = paths;
 
   if (!existsSync(lastBranchFile)) {
@@ -70,11 +57,7 @@ async function archiveIfBranchChanged(
     return;
   }
 
-  if (
-    currentBranch &&
-    lastBranch &&
-    currentBranch !== lastBranch
-  ) {
+  if (currentBranch && lastBranch && currentBranch !== lastBranch) {
     const dateStr = new Date().toISOString().split('T')[0];
     const folderName = lastBranch.replace(/^ralph\//, '');
     const archiveFolder = join(archiveDir, `${dateStr}-${folderName}`);
@@ -103,13 +86,10 @@ async function archiveIfBranchChanged(
 /**
  * Write the current branch to the last-branch tracking file.
  */
-async function trackBranch(
-  plan: TaskPlan,
-  lastBranchFile: string,
-): Promise<void> {
+async function trackBranch(plan: TaskPlan, lastBranchFile: string): Promise<void> {
   const branch = plan.branchName ?? '';
   if (branch) {
-    await writeFile(lastBranchFile, branch + '\n', 'utf-8');
+    await writeFile(lastBranchFile, `${branch}\n`, 'utf-8');
   }
 }
 
@@ -124,17 +104,12 @@ async function trackBranch(
  * 5. Main loop: iterate, execute Claude, handle results
  * 6. Print summary
  */
-export async function runEngine(
-  config: RalphConfig,
-  paths: ResolvedPaths,
-): Promise<number> {
+export async function runEngine(config: RalphConfig, paths: ResolvedPaths): Promise<number> {
   // Load task plan
   if (!existsSync(paths.prdFile)) {
     printError(`PRD file not found at ${paths.prdFile}`);
     if (config.issueNumber) {
-      console.log(
-        `Have you run the resolve-issue skill for issue #${config.issueNumber} first?`,
-      );
+      console.log(`Have you run the resolve-issue skill for issue #${config.issueNumber} first?`);
     }
     return 1;
   }
@@ -184,7 +159,7 @@ export async function runEngine(
   const promptResult = await resolvePrompt({
     projectRoot: paths.projectRoot,
   });
-  let promptTmpDir = promptResult.tmpDir;
+  const promptTmpDir = promptResult.tmpDir;
 
   try {
     // Print startup header

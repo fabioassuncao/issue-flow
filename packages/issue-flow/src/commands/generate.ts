@@ -1,5 +1,5 @@
 import { runHeadless } from '../core/headless.js';
-import { printSuccess, printError, printInfo } from '../ui/logger.js';
+import { printError, printInfo, printSuccess } from '../ui/logger.js';
 
 /**
  * Extract an issue URL from headless output.

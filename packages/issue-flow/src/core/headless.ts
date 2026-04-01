@@ -27,18 +27,15 @@ export interface HeadlessResult {
  * Output is parsed as JSON when outputFormat is 'json' (default).
  */
 export async function runHeadless(options: HeadlessOptions): Promise<HeadlessResult> {
-  const {
-    prompt,
-    maxTurns = 10,
-    timeout = 300_000,
-    outputFormat = 'json',
-    allowedTools,
-  } = options;
+  const { prompt, maxTurns = 10, timeout = 300_000, outputFormat = 'json', allowedTools } = options;
 
   const args: string[] = [
-    '-p', prompt,
-    '--output-format', outputFormat,
-    '--max-turns', String(maxTurns),
+    '-p',
+    prompt,
+    '--output-format',
+    outputFormat,
+    '--max-turns',
+    String(maxTurns),
   ];
 
   if (allowedTools && allowedTools.length > 0) {
@@ -72,9 +69,10 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
         return {
           success: true,
           result: parsed.result ?? stdout,
-          cost: parsed.cost_usd != null
-            ? { inputTokens: parsed.num_input_tokens, outputTokens: parsed.num_output_tokens }
-            : null,
+          cost:
+            parsed.cost_usd != null
+              ? { inputTokens: parsed.num_input_tokens, outputTokens: parsed.num_output_tokens }
+              : null,
           error: null,
         };
       } catch {

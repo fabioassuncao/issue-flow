@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PipelineManager, PIPELINE_PHASES } from './pipeline.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TaskPlan } from '../types.js';
+import { PIPELINE_PHASES, PipelineManager } from './pipeline.js';
 
 // Mock state-manager
 vi.mock('./state-manager.js', () => ({
@@ -47,10 +47,7 @@ describe('PipelineManager', () => {
     });
 
     it('returns prd when analyze is complete', () => {
-      const mgr = new PipelineManager(
-        makePlan({ analyzeCompleted: true }),
-        '/tmp/tasks.json',
-      );
+      const mgr = new PipelineManager(makePlan({ analyzeCompleted: true }), '/tmp/tasks.json');
       expect(mgr.getNextPhase()).toBe('prd');
     });
 
@@ -94,10 +91,7 @@ describe('PipelineManager', () => {
     });
 
     it('can resume from prd if analyze is complete', () => {
-      const mgr = new PipelineManager(
-        makePlan({ analyzeCompleted: true }),
-        '/tmp/tasks.json',
-      );
+      const mgr = new PipelineManager(makePlan({ analyzeCompleted: true }), '/tmp/tasks.json');
       expect(mgr.canResume('prd')).toBe(true);
     });
 
@@ -163,8 +157,6 @@ describe('PipelineManager', () => {
   });
 
   it('defines 7 pipeline phases in order', () => {
-    expect(PIPELINE_PHASES).toEqual([
-      'init', 'analyze', 'prd', 'plan', 'execute', 'review', 'pr',
-    ]);
+    expect(PIPELINE_PHASES).toEqual(['init', 'analyze', 'prd', 'plan', 'execute', 'review', 'pr']);
   });
 });

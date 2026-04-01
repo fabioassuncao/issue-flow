@@ -38,10 +38,7 @@ const TRANSIENT_PATTERNS = [
  * - Exit code is 75 (EX_TEMPFAIL)
  * - Output contains known transient error patterns
  */
-export function isTransientFailure(
-  exitCode: number,
-  output: string,
-): boolean {
+export function isTransientFailure(exitCode: number, output: string): boolean {
   // Exit code 75 = EX_TEMPFAIL
   if (exitCode === 75) {
     return true;
@@ -65,6 +62,6 @@ export function retryDelaySeconds(
   baseSeconds: number = 30,
   maxSeconds: number = 900,
 ): number {
-  const delay = baseSeconds * Math.pow(2, attempt - 1);
+  const delay = baseSeconds * 2 ** (attempt - 1);
   return Math.min(delay, maxSeconds);
 }

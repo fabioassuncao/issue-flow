@@ -1,20 +1,20 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { writeFile, readFile, mkdir, rm } from 'node:fs/promises';
-import { join } from 'node:path';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { TaskPlan } from '../types.js';
 import {
-  loadTaskPlan,
-  saveTaskPlan,
-  initializeState,
   allStoriesPass,
-  markStoryPassing,
-  markIssueInProgress,
-  markIssueCompleted,
-  setLastError,
   clearLastError,
+  initializeState,
+  loadTaskPlan,
+  markIssueCompleted,
+  markIssueInProgress,
+  markStoryPassing,
+  saveTaskPlan,
+  setLastError,
   trimErrorMessage,
 } from './state-manager.js';
-import type { TaskPlan } from '../types.js';
 
 function createMinimalPlan(overrides?: Partial<TaskPlan>): TaskPlan {
   return {
@@ -88,9 +88,7 @@ describe('state-manager', () => {
       const filePath = join(tmpDir, 'tasks.json');
       await writeFile(filePath, JSON.stringify({ project: 'test' }), 'utf-8');
 
-      await expect(loadTaskPlan(filePath)).rejects.toThrow(
-        'Invalid tasks.json',
-      );
+      await expect(loadTaskPlan(filePath)).rejects.toThrow('Invalid tasks.json');
     });
 
     it('should throw on missing file', async () => {
@@ -116,7 +114,15 @@ describe('state-manager', () => {
     it('should fill defaults for missing fields', () => {
       const plan = {
         userStories: [
-          { id: 'US-001', title: 'Test', description: '', acceptanceCriteria: [], priority: 1, passes: false, notes: '' },
+          {
+            id: 'US-001',
+            title: 'Test',
+            description: '',
+            acceptanceCriteria: [],
+            priority: 1,
+            passes: false,
+            notes: '',
+          },
         ],
       } as unknown as TaskPlan;
 
@@ -224,9 +230,7 @@ describe('state-manager', () => {
 
   describe('trimErrorMessage', () => {
     it('should trim to 8 non-empty lines', () => {
-      const lines = Array.from({ length: 15 }, (_, i) => `Line ${i + 1}`).join(
-        '\n',
-      );
+      const lines = Array.from({ length: 15 }, (_, i) => `Line ${i + 1}`).join('\n');
       const trimmed = trimErrorMessage(lines);
       expect(trimmed.split('\n')).toHaveLength(8);
     });

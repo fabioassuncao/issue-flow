@@ -20,11 +20,11 @@ export async function executeClaude(prompt: string): Promise<ClaudeResult> {
   // Combine stdout and stderr to match Bash's 2>&1 behavior
   const stdout = result.stdout?.toString() ?? '';
   const stderr = result.stderr?.toString() ?? '';
-  const output = stdout + (stderr ? '\n' + stderr : '');
+  const output = stdout + (stderr ? `\n${stderr}` : '');
 
   // Forward output to process stderr (matching Bash: printf '%s\n' "$OUTPUT" >&2)
   if (output.trim()) {
-    process.stderr.write(output + '\n');
+    process.stderr.write(`${output}\n`);
   }
 
   return {

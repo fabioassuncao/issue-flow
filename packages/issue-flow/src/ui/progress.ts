@@ -1,12 +1,12 @@
 import chalk from 'chalk';
 import type { UserStory } from '../types.js';
-import { getIcons, getTermWidth } from './logger.js';
+import { getIcons } from './logger.js';
 
 /**
  * Check if color output is enabled.
  */
 function useColor(): boolean {
-  if (process.env['NO_COLOR'] === '1') return false;
+  if (process.env.NO_COLOR === '1') return false;
   if (!process.stdout.isTTY) return false;
   return true;
 }
@@ -15,7 +15,7 @@ function useColor(): boolean {
  * Check if unicode output is enabled.
  */
 function useUnicode(): boolean {
-  if (process.env['NO_COLOR'] === '1') return false;
+  if (process.env.NO_COLOR === '1') return false;
   if (!process.stdout.isTTY) return false;
   return true;
 }
@@ -57,18 +57,14 @@ export function printIterationHeader(
   const icons = getIcons();
   const colored = useColor();
 
-  const iterLabel = maxIter
-    ? `Iteration ${iteration} of ${maxIter}`
-    : `Iteration ${iteration}`;
+  const iterLabel = maxIter ? `Iteration ${iteration} of ${maxIter}` : `Iteration ${iteration}`;
 
   const total = stories.length;
   const passed = stories.filter((s) => s.passes).length;
 
   console.log('');
   if (colored) {
-    console.log(
-      chalk.blue(`\u2501\u2501\u2501 ${icons.start} ${iterLabel} \u2501\u2501\u2501`),
-    );
+    console.log(chalk.blue(`\u2501\u2501\u2501 ${icons.start} ${iterLabel} \u2501\u2501\u2501`));
   } else {
     console.log(`--- ${icons.start} ${iterLabel} ---`);
   }
