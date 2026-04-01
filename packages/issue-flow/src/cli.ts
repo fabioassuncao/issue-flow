@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import { Command, InvalidArgumentError } from 'commander';
 import { printError } from './ui/logger.js';
 
@@ -20,7 +19,7 @@ program
   .description(
     'Unified CLI for orchestrating the full issue-flow pipeline via Claude Code Headless.',
   )
-  .version('2.0.0');
+  .version('0.3.0');
 
 // ── init ────────────────────────────────────────────────────────────────────
 program

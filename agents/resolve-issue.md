@@ -1,6 +1,6 @@
 ---
 name: resolve-issue
-description: "Resolve a GitHub issue end-to-end. Supports modes: auto (no stops), manual (artifacts only). Trigger on: resolve issue, fix issue, work on issue, implement issue, resolver issue, trabalhar na issue."
+description: "Resolve a GitHub issue end-to-end. Supports modes: auto (no stops), manual (artifacts only). Trigger on: resolve issue, fix issue, work on issue, implement issue."
 tools:
   - Bash
   - Read
