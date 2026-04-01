@@ -9,6 +9,7 @@
   "homepage": "https://github.com/fabioassuncao/issue-flow",
   "repository": "https://github.com/fabioassuncao/issue-flow",
   "license": "MIT",
+  "agents": "./agents/",
   "keywords": [
     "github",
     "issues",

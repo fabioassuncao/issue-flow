@@ -15,7 +15,8 @@
       "version": "2.0.0",
       "keywords": ["github", "issues", "prd", "automation", "task-planning", "code-generation", "review", "sub-agent", "orchestration"],
       "category": "productivity",
-      "skills": "./skills/"
+      "skills": "./skills/",
+      "agents": "./agents/"
     }
   ]
 }

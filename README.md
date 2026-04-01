@@ -337,7 +337,7 @@ Issue Flow v2.0 has two types of components with different installation methods:
 | Component | Type | Portable | Claude Code required |
 |-----------|------|----------|---------------------|
 | `analyze-issue`, `generate-prd`, `convert-prd-to-json`, `execute-tasks`, `create-pr`, `review-issue`, `generate-issue` | Skills (`skills/`) | Yes — works with any tool that supports [Agent Skills](https://agentskills.io) | No |
-| `resolve-issue` (orchestrator) | Sub-agent (`.claude/agents/`) | **No** — exclusive to Claude Code | **Yes** |
+| `resolve-issue` (orchestrator) | Sub-agent (`agents/`) | **No** — exclusive to Claude Code | **Yes** |
 
 ### Full installation (Claude Code) — recommended
 
@@ -355,12 +355,12 @@ Installs everything: the sub-agent orchestrator + all skills. This is the only w
 
 **Manual (sub-agent only):**
 
-The sub-agent lives at `.claude/agents/resolve-issue.md` and is **not** distributed via `npx skills` or plugin marketplaces that only support skills. To install it manually:
+If you prefer not to use the plugin marketplace, you can install the sub-agent manually:
 
 ```bash
 # From your project root
 mkdir -p .claude/agents
-curl -sSL https://raw.githubusercontent.com/fabioassuncao/issue-flow/main/.claude/agents/resolve-issue.md \
+curl -sSL https://raw.githubusercontent.com/fabioassuncao/issue-flow/main/agents/resolve-issue.md \
   -o .claude/agents/resolve-issue.md
 ```
 
