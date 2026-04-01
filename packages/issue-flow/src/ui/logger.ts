@@ -4,7 +4,7 @@ import chalk from 'chalk';
  * Detect if unicode output is supported.
  */
 function useUnicode(): boolean {
-  if (process.env.NO_COLOR === '1') return false;
+  if (process.env.NO_COLOR != null && process.env.NO_COLOR !== '') return false;
   if (!process.stdout.isTTY) return false;
   return true;
 }
@@ -13,7 +13,7 @@ function useUnicode(): boolean {
  * Detect if color output is supported.
  */
 function useColor(): boolean {
-  if (process.env.NO_COLOR === '1') return false;
+  if (process.env.NO_COLOR != null && process.env.NO_COLOR !== '') return false;
   if (!process.stdout.isTTY) return false;
   return true;
 }

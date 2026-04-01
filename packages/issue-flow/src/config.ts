@@ -76,8 +76,13 @@ export function getInstallHint(pkg: string): string {
   if (os === 'darwin') {
     return `brew install ${pkg}`;
   }
+  if (os === 'linux') {
+    return `apt install ${pkg}  (or your distro's package manager)`;
+  }
+  if (os === 'win32') {
+    return `winget install ${pkg}  (or choco install ${pkg})`;
+  }
 
-  // Default to a generic hint
   return `install ${pkg} using your system package manager`;
 }
 

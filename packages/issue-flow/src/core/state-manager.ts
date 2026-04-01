@@ -1,6 +1,6 @@
-import { mkdtemp, readFile, rename, writeFile } from 'node:fs/promises';
+import { copyFile, mkdtemp, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { ZodError } from 'zod';
 import { taskPlanSchema } from '../schemas.js';
 import type { LastError, PipelineState, TaskPlan } from '../types.js';
@@ -36,12 +36,22 @@ export async function loadTaskPlan(path: string): Promise<TaskPlan> {
  * This prevents corruption if the process is interrupted during write.
  */
 export async function saveTaskPlan(path: string, plan: TaskPlan): Promise<void> {
-  const _dir = dirname(path);
   const tmpDir = await mkdtemp(join(tmpdir(), 'issue-flow-task-plan-'));
   const tmpFile = join(tmpDir, 'tasks.json');
 
   await writeFile(tmpFile, `${JSON.stringify(plan, null, 2)}\n`, 'utf-8');
-  await rename(tmpFile, path);
+
+  try {
+    await rename(tmpFile, path);
+  } catch (err: unknown) {
+    // EXDEV: rename fails across different devices/drives (common on Windows)
+    if ((err as NodeJS.ErrnoException).code === 'EXDEV') {
+      await copyFile(tmpFile, path);
+      await unlink(tmpFile);
+    } else {
+      throw err;
+    }
+  }
 }
 
 /**

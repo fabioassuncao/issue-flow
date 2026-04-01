@@ -6,13 +6,13 @@ import { getIcons, getTermWidth } from './logger.js';
  * Check if color/unicode output is enabled.
  */
 function useColor(): boolean {
-  if (process.env.NO_COLOR === '1') return false;
+  if (process.env.NO_COLOR != null && process.env.NO_COLOR !== '') return false;
   if (!process.stdout.isTTY) return false;
   return true;
 }
 
 function useUnicode(): boolean {
-  if (process.env.NO_COLOR === '1') return false;
+  if (process.env.NO_COLOR != null && process.env.NO_COLOR !== '') return false;
   if (!process.stdout.isTTY) return false;
   return true;
 }

@@ -59,7 +59,7 @@ async function archiveIfBranchChanged(plan: TaskPlan, paths: ResolvedPaths): Pro
 
   if (currentBranch && lastBranch && currentBranch !== lastBranch) {
     const dateStr = new Date().toISOString().split('T')[0];
-    const folderName = lastBranch.replace(/^issue\//, '');
+    const folderName = lastBranch.replace(/^issue\//, '').replace(/[<>:"|?*\\]/g, '_');
     const archiveFolder = join(archiveDir, `${dateStr}-${folderName}`);
 
     printInfo(`Archiving previous run: ${lastBranch}`);
