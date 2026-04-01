@@ -1,4 +1,4 @@
-import { Listr, PRESET_TIMER } from 'listr2';
+import { Listr, PRESET_TIMER, PRESET_TIMESTAMP } from 'listr2';
 import type { PipelinePhase } from '../core/pipeline.js';
 
 /**
@@ -46,8 +46,9 @@ const PHASE_LABELS: Record<string, string> = {
 function selectRenderer(verbose: boolean): 'default' | 'verbose' | 'simple' {
   const isTTY = !!process.stdout.isTTY;
   const isCI = !!process.env.CI;
+  const noColor = process.env.NO_COLOR != null && process.env.NO_COLOR !== '';
 
-  if (!isTTY || isCI) {
+  if (!isTTY || isCI || noColor) {
     return 'simple';
   }
 
@@ -67,6 +68,8 @@ export async function runPipelineWithRenderer(
   const { phases, startIndex, verbose, runners } = options;
   const overallStart = Date.now();
   let currentPhase: string | undefined;
+  const renderer = selectRenderer(verbose);
+  const isSimple = renderer === 'simple';
 
   const tasks = new Listr(
     phases.map((phase, index) => {
@@ -89,10 +92,11 @@ export async function runPipelineWithRenderer(
       };
     }),
     {
-      renderer: selectRenderer(verbose),
+      renderer,
       rendererOptions: {
         timer: PRESET_TIMER,
         collapseSkips: false,
+        ...(isSimple ? { timestamp: PRESET_TIMESTAMP } : {}),
       },
       exitOnError: true,
     },
