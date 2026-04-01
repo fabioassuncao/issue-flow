@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import type { EngineConfig, TaskPlan } from '../types.js';
-import { getIcons, getTermWidth } from './logger.js';
+import { formatDuration, getIcons, getTermWidth } from './logger.js';
 
 /**
  * Check if color/unicode output is enabled.
@@ -115,18 +115,8 @@ export function printStartupHeader(config: EngineConfig, plan: TaskPlan): void {
   ]);
 }
 
-/**
- * Format a duration in seconds to a human-readable string.
- */
-export function formatDuration(totalSeconds: number): string {
-  const mins = Math.floor(totalSeconds / 60);
-  const secs = totalSeconds % 60;
-
-  if (mins > 0) {
-    return `${mins}m ${secs}s`;
-  }
-  return `${secs}s`;
-}
+// Re-export formatDuration from logger to maintain backwards compatibility
+export { formatDuration } from './logger.js';
 
 /**
  * Print the final summary box.

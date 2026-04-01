@@ -1,9 +1,9 @@
 import { join } from 'node:path';
-import chalk from 'chalk';
 import { execa } from 'execa';
 import { PIPELINE_PHASES, PipelineManager, type PipelinePhase } from '../core/pipeline.js';
 import { isoNow, loadTaskPlan, saveTaskPlan } from '../core/state-manager.js';
-import { getIcons, printError, printInfo, printSuccess, printWarning, useColor } from '../ui/logger.js';
+import { formatDuration, printError, printInfo, printSuccess, printWarning } from '../ui/logger.js';
+import { PipelineTracker } from '../ui/progress.js';
 import { runAnalyze } from './analyze.js';
 import { runExecute } from './execute.js';
 import { runInit } from './init.js';
@@ -11,22 +11,6 @@ import { runPlan } from './plan.js';
 import { runPr } from './pr.js';
 import { runPrd } from './prd.js';
 import { runReview } from './review.js';
-
-/**
- * Print a pipeline phase header.
- */
-function printPhaseHeader(phase: string): void {
-  const icons = getIcons();
-  const colored = useColor();
-  const label = phase.charAt(0).toUpperCase() + phase.slice(1);
-
-  console.log('');
-  if (colored) {
-    console.log(chalk.blue(`\u2501\u2501\u2501 ${icons.start} ${label} \u2501\u2501\u2501`));
-  } else {
-    console.log(`--- ${icons.start} ${label} ---`);
-  }
-}
 
 export async function runPipeline(issue: string, mode: string, from?: string): Promise<number> {
   const issueNumber = issue.replace(/^#/, '');
@@ -86,9 +70,16 @@ export async function runPipeline(issue: string, mode: string, from?: string): P
   const phaseOrder: PipelinePhase[] = ['analyze', 'prd', 'plan', 'execute', 'review', 'pr'];
   const startIdx = phaseOrder.indexOf(startPhase);
 
+  // Pipeline progress tracker
+  const tracker = new PipelineTracker(
+    phaseOrder.map((p) => p),
+    startIdx,
+  );
+  tracker.startLiveUpdate();
+
   for (let i = startIdx; i < phaseOrder.length; i++) {
     const phase = phaseOrder[i];
-    printPhaseHeader(phase);
+    tracker.startPhase(phase);
 
     let code: number;
     switch (phase) {
@@ -134,6 +125,7 @@ export async function runPipeline(issue: string, mode: string, from?: string): P
           // Re-execute
           const execCode = await runExecute(undefined, { issue: issueNumber });
           if (execCode !== 0) {
+            tracker.failPhase(phase);
             printError('Correction execution failed');
             return 1;
           }
@@ -143,6 +135,7 @@ export async function runPipeline(issue: string, mode: string, from?: string): P
         }
 
         if (code !== 0) {
+          tracker.failPhase(phase);
           printError(`Review failed after ${maxCycles} correction cycles`);
           return 1;
         }
@@ -156,10 +149,15 @@ export async function runPipeline(issue: string, mode: string, from?: string): P
     }
 
     if (code !== 0) {
+      tracker.failPhase(phase);
       printError(`Phase ${phase} failed with exit code ${code}`);
       return 1;
     }
+
+    tracker.completePhase(phase);
   }
+
+  tracker.stopLiveUpdate();
 
   // Close the issue
   printInfo('Closing issue...');
@@ -206,11 +204,14 @@ export async function runPipeline(issue: string, mode: string, from?: string): P
     /* non-critical */
   }
 
+  const totalDuration = formatDuration(tracker.getOverallElapsed());
+
   console.log('');
   printSuccess(`Pipeline complete for issue #${issueNumber}!`);
-  console.log(`  Branch: ${branchName}`);
-  console.log(`  Stories: ${storyCount}`);
-  console.log(`  PR: ${prUrl}`);
+  console.log(`  Branch:   ${branchName}`);
+  console.log(`  Stories:  ${storyCount}`);
+  console.log(`  Duration: ${totalDuration}`);
+  console.log(`  PR:       ${prUrl}`);
 
   return 0;
 }

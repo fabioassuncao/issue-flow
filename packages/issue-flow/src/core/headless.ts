@@ -1,7 +1,7 @@
 import { createInterface } from 'node:readline';
 import chalk from 'chalk';
 import { execa } from 'execa';
-import { createSpinner, getIcons, useColor } from '../ui/logger.js';
+import { ElapsedTimer, createSpinner, formatDuration, getIcons, useColor } from '../ui/logger.js';
 import { isVerbose } from './verbose.js';
 
 export interface HeadlessOptions {
@@ -146,6 +146,8 @@ async function runHeadlessVerbose(
   const connectorLine = colored ? chalk.dim(`  ${icons.connector}`) : `  ${icons.connector}`;
   process.stderr.write(`${connectorLine}\n`);
 
+  const startTime = Date.now();
+
   const args: string[] = [
     '-p',
     prompt,
@@ -200,7 +202,13 @@ async function runHeadlessVerbose(
   // Wait for the process to finish
   const proc = await subprocess;
 
-  // Close connector
+  // Close connector with elapsed time
+  const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
+  const durationStr = formatDuration(elapsedSec);
+  const doneLine = colored
+    ? chalk.dim(`  ${icons.connector}  ${chalk.italic(`Done in ${durationStr}`)}`)
+    : `  ${icons.connector}  Done in ${durationStr}`;
+  process.stderr.write(`${doneLine}\n`);
   process.stderr.write(`${connectorLine}\n`);
 
   if (proc.exitCode !== 0 && !resultText) {
@@ -250,8 +258,15 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
     return runHeadlessVerbose(prompt, maxTurns, timeout, allowedTools, statusMessage);
   }
 
-  // Non-verbose: use spinner
+  // Non-verbose: use spinner with elapsed timer
   const spinner = statusMessage ? createSpinner(statusMessage).start() : null;
+
+  let timer: ElapsedTimer | null = null;
+  if (spinner) {
+    timer = new ElapsedTimer((elapsed) => {
+      spinner.suffixText = useColor() ? chalk.dim(`(${elapsed})`) : `(${elapsed})`;
+    }).start();
+  }
 
   const args: string[] = [
     '-p',
@@ -280,7 +295,9 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
     const stderr = proc.stderr?.toString() ?? '';
 
     if (proc.exitCode !== 0) {
-      spinner?.fail(statusMessage);
+      const elapsed = timer?.stop() ?? 0;
+      const dur = useColor() ? chalk.dim(` (${formatDuration(elapsed)})`) : ` (${formatDuration(elapsed)})`;
+      spinner?.fail(`${statusMessage}${dur}`);
       return {
         success: false,
         result: '',
@@ -289,7 +306,9 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
       };
     }
 
-    spinner?.stop();
+    const elapsed = timer?.stop() ?? 0;
+    const dur = useColor() ? chalk.dim(` (${formatDuration(elapsed)})`) : ` (${formatDuration(elapsed)})`;
+    spinner?.succeed(`${statusMessage}${dur}`);
 
     if (outputFormat === 'json') {
       try {
@@ -321,7 +340,9 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    spinner?.fail(statusMessage);
+    const catchElapsed = timer?.stop() ?? 0;
+    const catchDur = useColor() ? chalk.dim(` (${formatDuration(catchElapsed)})`) : ` (${formatDuration(catchElapsed)})`;
+    spinner?.fail(`${statusMessage}${catchDur}`);
 
     if (message.includes('timed out') || message.includes('ETIMEDOUT')) {
       return {

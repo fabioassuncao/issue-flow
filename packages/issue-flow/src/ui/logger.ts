@@ -123,3 +123,60 @@ export function createSpinner(message: string): Ora {
     spinner: 'dots',
   });
 }
+
+/**
+ * Format a duration in seconds to a human-readable string.
+ */
+export function formatDuration(totalSeconds: number): string {
+  const hours = Math.floor(totalSeconds / 3600);
+  const mins = Math.floor((totalSeconds % 3600) / 60);
+  const secs = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}h ${mins}m ${secs}s`;
+  }
+  if (mins > 0) {
+    return `${mins}m ${secs}s`;
+  }
+  return `${secs}s`;
+}
+
+/**
+ * Timer that calls a callback every second with the formatted elapsed time.
+ */
+export class ElapsedTimer {
+  private startTime: number;
+  private intervalId: ReturnType<typeof setInterval> | null = null;
+  private cleanup = () => this.stop();
+
+  constructor(private onTick: (elapsed: string) => void) {
+    this.startTime = Date.now();
+  }
+
+  start(): this {
+    this.startTime = Date.now();
+    this.intervalId = setInterval(() => {
+      const seconds = Math.floor((Date.now() - this.startTime) / 1000);
+      this.onTick(formatDuration(seconds));
+    }, 1_000);
+    // Prevent the timer from keeping the process alive
+    if (this.intervalId && typeof this.intervalId === 'object' && 'unref' in this.intervalId) {
+      this.intervalId.unref();
+    }
+    process.on('exit', this.cleanup);
+    return this;
+  }
+
+  getElapsedSeconds(): number {
+    return Math.floor((Date.now() - this.startTime) / 1000);
+  }
+
+  stop(): number {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
+    process.removeListener('exit', this.cleanup);
+    return this.getElapsedSeconds();
+  }
+}
