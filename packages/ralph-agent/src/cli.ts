@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 import { Command, InvalidArgumentError } from 'commander';
-import { createConfig, resolvePaths, validateDependencies } from './config.js';
-import { runEngine } from './core/engine.js';
 import { printError } from './ui/logger.js';
 
 /**
@@ -107,27 +105,9 @@ program
     retryForever?: boolean;
   }) => {
     try {
-      const errors = await validateDependencies();
-      if (errors.length > 0) {
-        printError('The following required tools are not installed:');
-        for (const err of errors) {
-          console.log(err);
-        }
-        process.exit(1);
-      }
-
-      const maxIterations = options.maxIterations ?? positionalMaxIter;
-
-      const config = createConfig({
-        issueNumber: options.issue,
-        maxIterations,
-        retryLimit: options.retryLimit,
-        retryForever: options.retryForever,
-      });
-
-      const paths = await resolvePaths(config);
-      const exitCode = await runEngine(config, paths);
-      process.exit(exitCode);
+      const { runExecute } = await import('./commands/execute.js');
+      const code = await runExecute(positionalMaxIter, options);
+      process.exit(code);
     } catch (error) {
       printError(error instanceof Error ? error.message : String(error));
       process.exit(1);
