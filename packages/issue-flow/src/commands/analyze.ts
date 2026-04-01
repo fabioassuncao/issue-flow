@@ -1,0 +1,61 @@
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { runHeadless } from '../core/headless.js';
+import { applyPlaceholders, loadPrompt } from '../core/prompt-resolver.js';
+import { loadTaskPlan, saveTaskPlan } from '../core/state-manager.js';
+import { printError, printInfo, printSuccess } from '../ui/logger.js';
+
+export async function runAnalyze(issue: string): Promise<number> {
+  const issueNumber = issue.replace(/^#/, '');
+  const issueDir = join('issues', issueNumber);
+  const analysisPath = join(issueDir, 'analysis.md');
+
+  printInfo(`Analyzing issue #${issueNumber}...`);
+
+  await mkdir(issueDir, { recursive: true });
+
+  const template = await loadPrompt('analyze');
+  const prompt = applyPlaceholders(template, {
+    __ISSUE_NUMBER__: issueNumber,
+    __ANALYSIS_PATH__: analysisPath,
+  });
+
+  const result = await runHeadless({
+    prompt,
+    maxTurns: 15,
+    timeout: 120_000,
+    outputFormat: 'text',
+    allowedTools: ['Bash', 'Read', 'Glob', 'Grep', 'Write'],
+  });
+
+  if (!result.success) {
+    printError(`Analysis failed: ${result.error}`);
+    return 1;
+  }
+
+  // Verify the file was created
+  try {
+    const content = await readFile(analysisPath, 'utf-8');
+    if (content.length < 10) {
+      printError('Analysis file was created but appears empty');
+      return 1;
+    }
+  } catch {
+    // File wasn't created by headless — save the result as analysis
+    printInfo('Headless did not create analysis file; saving output directly');
+    await writeFile(analysisPath, result.result, 'utf-8');
+  }
+
+  // Update pipeline state
+  const tasksPath = join(issueDir, 'tasks.json');
+  try {
+    const plan = await loadTaskPlan(tasksPath);
+    plan.pipeline.analyzeCompleted = true;
+    await saveTaskPlan(tasksPath, plan);
+  } catch {
+    // tasks.json may not exist yet — that's OK for standalone analyze
+  }
+
+  printSuccess(`Analysis saved to ${analysisPath}`);
+  return 0;
+}

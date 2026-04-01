@@ -1,6 +1,6 @@
 ---
 name: resolve-issue
-description: "Resolve a GitHub issue end-to-end. Supports modes: auto (no stops), semi_auto (confirm before execution), manual (artifacts only). Trigger on: resolve issue, fix issue, work on issue, implement issue, resolver issue, trabalhar na issue."
+description: "Resolve a GitHub issue end-to-end. Supports modes: auto (no stops), manual (artifacts only). Trigger on: resolve issue, fix issue, work on issue, implement issue, resolver issue, trabalhar na issue."
 tools:
   - Bash
   - Read
@@ -28,16 +28,15 @@ You are an autonomous sub-agent responsible for resolving a GitHub issue from st
 
 ## Execution Modes
 
-Parse the mode from the invocation text. Default is `semi_auto`.
+Parse the mode from the invocation text. Default is `auto`.
 
 | Mode | Behavior |
 |------|----------|
-| `auto` | No confirmation gates. Full pipeline runs uninterrupted. Only stops on non-recoverable errors. |
-| `semi_auto` | Pauses at Phase 3c (before execution begins) for user confirmation. All other transitions are automatic. **This is the default.** |
+| `auto` | No confirmation gates. Full pipeline runs uninterrupted. Only stops on non-recoverable errors. **This is the default.** |
 | `manual` | Runs Phases 0-3 only. Generates artifacts (PRD + tasks.json) and stops. Never invokes execute-tasks. |
 
 **Parsing rules:**
-- `resolve issue #42` → `semi_auto`
+- `resolve issue #42` → `auto`
 - `resolve issue #42 --mode auto` → `auto`
 - `resolve issue #42 --mode manual` → `manual`
 - `resolve issue #42 auto` → `auto`
@@ -53,7 +52,6 @@ Parse the mode from the invocation text. Default is `semi_auto`.
 - Do NOT ask "shall I proceed?" or "ready to continue?" between phases — just proceed.
 - Each sub-skill may surface ambiguities. If there are none, move to the next phase immediately.
 - **In `auto` mode**: NEVER stop between phases. Skip all confirmation gates. Only stop on non-recoverable errors.
-- **In `semi_auto` mode**: Stop only at Phase 3c. All other transitions are automatic.
 - **In `manual` mode**: Stop after Phase 3b. Do not invoke execute-tasks.
 
 ---
@@ -90,7 +88,7 @@ Extract `ISSUE_NUMBER` from whichever format is given.
    - If `pipeline.executionCompleted` is true but `pipeline.reviewCompleted` is false → skip to Phase 5
    - If `pipeline.reviewCompleted` is true but `pipeline.prCreated` is false → skip to Phase 7
 
-   **In `semi_auto` or `manual` mode**: Report status and ask the user:
+   **In `manual` mode**: Report status and ask the user:
    ```
    Found existing work for issue #{ISSUE_NUMBER}:
    - Branch: issue/{ISSUE_NUMBER}-{slug}
@@ -129,7 +127,7 @@ Store the result in memory as `ISSUE_ANALYSIS` — you will pass it to subsequen
 If the analysis reveals no critical ambiguities, **immediately proceed to Phase 2**.
 If there are ambiguities:
 1. **In `auto` mode**: Proceed with best-effort assumptions. Document assumptions in `ISSUE_ANALYSIS`.
-2. **In `semi_auto` or `manual` mode**:
+2. **In `manual` mode**:
    - Present ambiguities to the user with recommended answers.
    - After the user responds, merge clarifications into `ISSUE_ANALYSIS`.
    - Add a `User Clarifications` section summarizing answers.
@@ -204,45 +202,6 @@ Store the parsed user stories list as `TASK_PLAN`.
 #### `auto` mode:
 **SKIP this gate entirely.** Proceed directly to Phase 4. Do NOT present any confirmation prompt.
 
-#### `semi_auto` mode (default):
-Present the task plan summary and ask whether the user wants to start development:
-
-```
-Task plan for issue #{ISSUE_NUMBER}:
-
-Branch: issue/{ISSUE_NUMBER}-{slug}
-User stories ({N} total):
-  US-001: [title] — {N} acceptance criteria
-  US-002: [title] — {N} acceptance criteria
-  ...
-
-Do you want to proceed with development now?
-
-A. **Proceed now** (recommended) — start implementing the stories
-B. **Stop here for now** — keep the generated artifacts and end the flow
-```
-
-Wait for the user's choice.
-
-**If user chooses A:** Proceed to Phase 4.
-**If user chooses B:** Preserve artifacts and stop. Show resume options:
-```
-Planning artifacts saved. Development has not started.
-
-Artifacts kept:
-  - issues/{ISSUE_NUMBER}/prd.md
-  - issues/{ISSUE_NUMBER}/tasks.json
-  - Branch: issue/{ISSUE_NUMBER}-{slug}
-
-You can resume later by:
-  - Using @resolve-issue #{ISSUE_NUMBER}
-  - Using /execute-tasks directly for issue #{ISSUE_NUMBER}
-  - Headless: claude --agent resolve-issue -p "#{ISSUE_NUMBER} --mode auto"
-
-For issues with many user stories:
-  ./scripts/ralph/ralph.sh --issue {ISSUE_NUMBER}
-```
-
 #### `manual` mode:
 **STOP here.** Show the artifacts summary and exit:
 ```
@@ -261,7 +220,7 @@ User stories ({N} total):
 To start development:
   - @resolve-issue #{ISSUE_NUMBER} (interactive)
   - claude --agent resolve-issue -p "#{ISSUE_NUMBER} --mode auto" (headless)
-  - ./scripts/ralph/ralph.sh --issue {ISSUE_NUMBER} (for many stories)
+  - issue-flow execute --issue {ISSUE_NUMBER} (CLI)
 ```
 
 ---
@@ -420,24 +379,6 @@ Pipeline complete.
 
 ---
 
-## Ralph Loop Recommendation
-
-After completing Phase 3 (in any mode), if the task plan has a large number of user stories, suggest the Ralph Loop as an alternative execution strategy:
-
-**Threshold**: If tasks.json has more than 10 user stories, add a note:
-
-```
-This issue has {N} user stories. For large task plans, consider using the Ralph Loop
-for execution with context-reset per iteration:
-  ./scripts/ralph/ralph.sh --issue {ISSUE_NUMBER}
-```
-
-In `auto` mode, this is shown as informational only — the pipeline continues regardless.
-In `semi_auto` mode, this is included in the Step 3c prompt.
-In `manual` mode, this is included in the final artifacts summary.
-
----
-
 ## Pipeline State Tracking
 
 The orchestrator updates `pipeline` flags in tasks.json after each phase completes. This enables resumption from any point.
@@ -489,7 +430,6 @@ issues/
 - **All commits must pass quality checks** — no broken code
 - **Always read `issues/{ISSUE_NUMBER}/progress.txt` before entering Phase 4** to understand what was done and what patterns were discovered
 - **Each skill invocation is a delegation** — wait for the skill to fully complete before moving to the next phase
-- **Never execute Ralph automatically** — it is an opt-in recommendation shown only as information
 - **The correction loop (Phase 6) has a hard limit** — after `maxCorrectionCycles` failed attempts, stop and escalate to the user
 - **Always update pipeline state** — after each phase completes, update the corresponding flag in tasks.json
 - **In auto mode, the pipeline MUST NOT stop** — proceed through all phases without interruption. Only non-recoverable errors cause a stop.

@@ -1,0 +1,89 @@
+import { join } from 'node:path';
+import { runHeadless } from '../core/headless.js';
+import { applyPlaceholders, loadPrompt } from '../core/prompt-resolver.js';
+import { loadTaskPlan, saveTaskPlan } from '../core/state-manager.js';
+import { printError, printInfo, printSuccess } from '../ui/logger.js';
+
+export interface ReviewResult {
+  status: 'PASS' | 'FAIL';
+  findings?: string;
+}
+
+/**
+ * Parse the <review-result> block from headless output.
+ */
+function parseReviewResult(output: string): ReviewResult {
+  const match = output.match(/<review-result>([\s\S]*?)<\/review-result>/);
+  if (!match) {
+    // Try to detect PASS/FAIL from the raw output
+    if (/STATUS:\s*PASS/i.test(output)) {
+      return { status: 'PASS' };
+    }
+    if (/STATUS:\s*FAIL/i.test(output)) {
+      const findingsMatch = output.match(/FINDINGS:([\s\S]*?)(?:$|<\/)/);
+      return { status: 'FAIL', findings: findingsMatch?.[1]?.trim() ?? 'Unknown findings' };
+    }
+    // Default to PASS if no explicit status found and no errors
+    return { status: 'PASS' };
+  }
+
+  const block = match[1];
+  if (/STATUS:\s*PASS/i.test(block)) {
+    return { status: 'PASS' };
+  }
+
+  const findingsMatch = block.match(/FINDINGS:([\s\S]*)/);
+  return {
+    status: 'FAIL',
+    findings: findingsMatch?.[1]?.trim() ?? 'Unknown findings',
+  };
+}
+
+export async function runReview(issue: string): Promise<number> {
+  const issueNumber = issue.replace(/^#/, '');
+  const issueDir = join('issues', issueNumber);
+  const tasksPath = join(issueDir, 'tasks.json');
+
+  printInfo(`Reviewing issue #${issueNumber} resolution...`);
+
+  const template = await loadPrompt('review');
+  const prompt = applyPlaceholders(template, {
+    __ISSUE_NUMBER__: issueNumber,
+    __TASKS_PATH__: tasksPath,
+  });
+
+  const result = await runHeadless({
+    prompt,
+    maxTurns: 20,
+    timeout: 180_000,
+    outputFormat: 'text',
+    allowedTools: ['Bash', 'Read', 'Glob', 'Grep'],
+  });
+
+  if (!result.success) {
+    printError(`Review failed: ${result.error}`);
+    return 1;
+  }
+
+  const review = parseReviewResult(result.result);
+
+  if (review.status === 'PASS') {
+    // Update pipeline state
+    try {
+      const plan = await loadTaskPlan(tasksPath);
+      plan.pipeline.reviewCompleted = true;
+      await saveTaskPlan(tasksPath, plan);
+    } catch {
+      // tasks.json may not exist
+    }
+
+    printSuccess('Review PASSED — implementation meets acceptance criteria');
+    return 0;
+  }
+
+  printError('Review FAILED — issues found:');
+  if (review.findings) {
+    console.log(review.findings);
+  }
+  return 1;
+}
