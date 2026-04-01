@@ -227,7 +227,11 @@ export class PipelineTracker {
     process.stderr.write(`${lines.join('\n')}\n`);
   }
 
-  private formatPhase(phase: PhaseInfo, icons: ReturnType<typeof getIcons>, colored: boolean): string {
+  private formatPhase(
+    phase: PhaseInfo,
+    icons: ReturnType<typeof getIcons>,
+    colored: boolean,
+  ): string {
     let icon: string;
     let colorFn: (s: string) => string;
     let durationStr = '';

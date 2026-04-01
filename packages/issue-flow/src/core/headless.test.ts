@@ -8,6 +8,8 @@ vi.mock('execa', () => ({
 
 import { execa } from 'execa';
 
+type ExecaResult = Awaited<ReturnType<typeof execa>>;
+
 const mockExeca = vi.mocked(execa);
 
 describe('runHeadless', () => {
@@ -25,7 +27,7 @@ describe('runHeadless', () => {
       }),
       stderr: '',
       exitCode: 0,
-    } as any);
+    } as unknown as ExecaResult);
 
     const result = await runHeadless({ prompt: 'test prompt' });
 
@@ -46,7 +48,7 @@ describe('runHeadless', () => {
       stdout: '',
       stderr: 'Authentication required',
       exitCode: 1,
-    } as any);
+    } as unknown as ExecaResult);
 
     const result = await runHeadless({ prompt: 'test prompt' });
 
@@ -69,7 +71,7 @@ describe('runHeadless', () => {
       stdout: JSON.stringify({ result: 'ok' }),
       stderr: '',
       exitCode: 0,
-    } as any);
+    } as unknown as ExecaResult);
 
     await runHeadless({
       prompt: 'test',
@@ -88,7 +90,7 @@ describe('runHeadless', () => {
       stdout: 'plain text output',
       stderr: '',
       exitCode: 0,
-    } as any);
+    } as unknown as ExecaResult);
 
     const result = await runHeadless({ prompt: 'test' });
 
@@ -101,7 +103,7 @@ describe('runHeadless', () => {
       stdout: 'raw text output',
       stderr: '',
       exitCode: 0,
-    } as any);
+    } as unknown as ExecaResult);
 
     const result = await runHeadless({ prompt: 'test', outputFormat: 'text' });
 
