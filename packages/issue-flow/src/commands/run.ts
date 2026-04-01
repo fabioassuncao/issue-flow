@@ -134,6 +134,7 @@ export async function runPipeline(issue: string, mode: string, from?: string): P
     startIndex: startIdx,
     verbose: isVerbose(),
     runners,
+    tasksPath,
   });
 
   if (!result.success) {

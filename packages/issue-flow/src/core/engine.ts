@@ -8,7 +8,7 @@ import { printStartupHeader, printSummaryBox } from '../ui/summary.js';
 import { isTransientFailure, retryDelaySeconds } from '../utils/retry.js';
 import { executeClaude } from './executor.js';
 import { applyPlaceholders, loadPrompt } from './prompt-resolver.js';
-import { getOutputCallback } from './verbose.js';
+import { getOutputCallback, getStoryUpdateCallback } from './verbose.js';
 import {
   allStoriesPass,
   clearLastError,
@@ -270,6 +270,12 @@ export async function runEngine(config: EngineConfig, paths: ResolvedPaths): Pro
     plan = await loadTaskPlan(paths.prdFile);
     plan = clearLastError(plan, iterationStartedAt);
     await saveTaskPlan(paths.prdFile, plan);
+
+    // Notify story progress listeners (e.g., listr2 subtasks)
+    const storyUpdateCb = getStoryUpdateCallback();
+    if (storyUpdateCb) {
+      storyUpdateCb(plan.userStories);
+    }
 
     // Check for completion signal
     if (result.output.includes('<promise>COMPLETE</promise>')) {

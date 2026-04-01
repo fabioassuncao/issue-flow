@@ -1,6 +1,8 @@
 import { Listr, PRESET_TIMER, PRESET_TIMESTAMP } from 'listr2';
 import type { PipelinePhase } from '../core/pipeline.js';
-import { setOutputCallback } from '../core/verbose.js';
+import { loadTaskPlan } from '../core/state-manager.js';
+import { setOutputCallback, setStoryUpdateCallback } from '../core/verbose.js';
+import type { UserStory } from '../types.js';
 
 /**
  * Result returned after the pipeline renderer finishes.
@@ -23,6 +25,8 @@ export interface PipelineRendererOptions {
   verbose: boolean;
   /** Map of phase name to its async runner function */
   runners: Record<string, () => Promise<void>>;
+  /** Path to tasks.json — enables execute-phase subtask progress when set */
+  tasksPath?: string;
 }
 
 /**
@@ -57,16 +61,124 @@ function selectRenderer(verbose: boolean): 'default' | 'verbose' | 'simple' {
 }
 
 /**
+ * Build the execute phase task with dynamic subtasks for each user story.
+ *
+ * Stories that already pass are displayed as skipped. Pending stories wait for
+ * the engine to complete them via the story update callback. The parent task
+ * title is updated with aggregate progress (e.g., "Execute (3/5 stories passing)").
+ */
+function buildExecutePhaseTask(
+  runner: () => Promise<void>,
+  tasksPath: string,
+  verbose: boolean,
+) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return async (_ctx: unknown, task: any) => {
+    let stories: UserStory[];
+    try {
+      const plan = await loadTaskPlan(tasksPath);
+      stories = [...plan.userStories].sort((a, b) => a.priority - b.priority);
+    } catch {
+      // If we can't read the plan, fall back to running without subtasks
+      setOutputCallback((line: string) => { task.output = line; });
+      try { await runner(); } finally { setOutputCallback(undefined); }
+      return;
+    }
+
+    const totalStories = stories.length;
+    const initialPassed = stories.filter((s) => s.passes).length;
+    task.title = `Execute (${initialPassed}/${totalStories} stories passing)`;
+
+    // Create promise resolvers for pending stories
+    const resolvers = new Map<
+      string,
+      { resolve: () => void; reject: (err: Error) => void }
+    >();
+
+    // Set up story update callback — engine calls this after each iteration
+    setStoryUpdateCallback((updatedStories: UserStory[]) => {
+      const passed = updatedStories.filter((s) => s.passes).length;
+      task.title = `Execute (${passed}/${totalStories} stories passing)`;
+
+      for (const s of updatedStories) {
+        if (s.passes && resolvers.has(s.id)) {
+          resolvers.get(s.id)!.resolve();
+          resolvers.delete(s.id);
+        }
+      }
+    });
+
+    // Build subtask definitions for each story
+    const subtaskDefs = stories.map((story) => ({
+      title: `${story.id}: ${story.title}`,
+      skip: story.passes ? 'already passing' : false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      task: async () => {
+        await new Promise<void>((resolve, reject) => {
+          resolvers.set(story.id, { resolve, reject });
+        });
+      },
+      rendererOptions: {
+        timer: PRESET_TIMER,
+      },
+    }));
+
+    // Engine runner subtask — drives the execution loop
+    const engineSubtask = {
+      title: 'Running engine',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      task: async (_c: unknown, engineTask: any) => {
+        setOutputCallback((line: string) => { engineTask.output = line; });
+        try {
+          await runner();
+        } finally {
+          setOutputCallback(undefined);
+          // Resolve any remaining pending stories (engine finished successfully)
+          for (const [, { resolve }] of resolvers) {
+            resolve();
+          }
+          resolvers.clear();
+        }
+      },
+      rendererOptions: {
+        timer: PRESET_TIMER,
+        outputBar: verbose ? Infinity : false,
+        persistentOutput: false,
+        bottomBar: verbose ? Infinity : 5,
+      },
+    };
+
+    try {
+      // Run engine + story subtasks concurrently:
+      // - Engine subtask runs the actual execution loop
+      // - Story subtasks resolve as the engine completes each story
+      return task.newListr([engineSubtask, ...subtaskDefs], {
+        concurrent: true,
+        exitOnError: false,
+        rendererOptions: {
+          timer: PRESET_TIMER,
+          collapseSkips: false,
+        },
+      });
+    } finally {
+      // Cleanup is handled in engineSubtask's finally block
+      setStoryUpdateCallback(undefined);
+    }
+  };
+}
+
+/**
  * Run the pipeline phases through listr2 for single-writer terminal output.
  *
  * Phases before startIndex are displayed as "skipped".
  * Each running phase shows an animated spinner with elapsed time.
  * Completed phases show a checkmark with final duration.
+ * The execute phase shows per-story subtask progress when tasksPath is provided.
  */
 export async function runPipelineWithRenderer(
   options: PipelineRendererOptions,
 ): Promise<PipelineResult> {
-  const { phases, startIndex, verbose, runners } = options;
+  const { phases, startIndex, verbose, runners, tasksPath } = options;
   const overallStart = Date.now();
   let currentPhase: string | undefined;
   const renderer = selectRenderer(verbose);
@@ -75,26 +187,35 @@ export async function runPipelineWithRenderer(
   const tasks = new Listr(
     phases.map((phase, index) => {
       const label = PHASE_LABELS[phase] ?? phase.charAt(0).toUpperCase() + phase.slice(1);
+      const isExecutePhase = phase === 'execute' && tasksPath;
 
       return {
         title: label,
         skip: index < startIndex ? 'skipped' : false,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        task: async (_ctx: unknown, task: any) => {
-          currentPhase = phase;
-          const runner = runners[phase];
-          if (!runner) {
-            throw new Error(`No runner defined for phase: ${phase}`);
-          }
-          // Route all output (print functions + verbose streaming) through task.output
-          // so listr2 controls rendering and prevents concurrent stdout writes
-          setOutputCallback((line: string) => { task.output = line; });
-          try {
-            await runner();
-          } finally {
-            setOutputCallback(undefined);
-          }
-        },
+        task: isExecutePhase
+          ? async (_ctx: unknown, task: any) => {
+              currentPhase = phase;
+              const runner = runners[phase];
+              if (!runner) {
+                throw new Error(`No runner defined for phase: ${phase}`);
+              }
+              return buildExecutePhaseTask(runner, tasksPath, verbose)(_ctx, task);
+            }
+          : async (_ctx: unknown, task: any) => {
+              currentPhase = phase;
+              const runner = runners[phase];
+              if (!runner) {
+                throw new Error(`No runner defined for phase: ${phase}`);
+              }
+              // Route all output through task.output so listr2 controls rendering
+              setOutputCallback((line: string) => { task.output = line; });
+              try {
+                await runner();
+              } finally {
+                setOutputCallback(undefined);
+              }
+            },
         rendererOptions: {
           timer: PRESET_TIMER,
           outputBar: verbose ? Infinity : false,
