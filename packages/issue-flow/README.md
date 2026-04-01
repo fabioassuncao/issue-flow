@@ -44,6 +44,31 @@ npm install -g issue-flow
 issue-flow run 42
 ```
 
+## Global Options
+
+All commands support the following options:
+
+| Flag | Description |
+|------|-------------|
+| `-v, --verbose` | Show Claude progress output in real time |
+| `-t, --timeout <seconds>` | Override headless timeout in seconds (0 = no limit) |
+
+```bash
+# Run with verbose output
+npx issue-flow analyze 42 --verbose
+
+# Override timeout to 10 minutes
+npx issue-flow analyze 42 --timeout 600
+
+# Disable timeout entirely
+npx issue-flow run 42 --timeout 0
+
+# Combine flags
+npx issue-flow analyze 42 -v -t 600
+```
+
+Default timeouts vary per command (5 min for most, 3 min for `generate` and `pr`). Use `--timeout` to override when working with large or complex issues.
+
 ## Commands
 
 ### `run` -- Full pipeline (end-to-end)

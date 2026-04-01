@@ -1,5 +1,5 @@
 import { Command, InvalidArgumentError } from 'commander';
-import { setVerbose } from './core/verbose.js';
+import { setGlobalTimeout, setVerbose } from './core/verbose.js';
 import { printError } from './ui/logger.js';
 
 /**
@@ -17,7 +17,9 @@ function parseInteger(value: string): number {
  * Add shared options (--verbose) to a subcommand.
  */
 function withGlobalOptions(cmd: Command): Command {
-  return cmd.option('-v, --verbose', 'Show Claude progress output in real time');
+  return cmd
+    .option('-v, --verbose', 'Show Claude progress output in real time')
+    .option('-t, --timeout <seconds>', 'Override headless timeout in seconds (0 = no limit)', parseInteger);
 }
 
 const program = new Command();
@@ -33,6 +35,9 @@ program.hook('preAction', (_thisCommand, actionCommand) => {
   const opts = actionCommand.opts();
   if (opts.verbose) {
     setVerbose(true);
+  }
+  if (opts.timeout !== undefined) {
+    setGlobalTimeout(opts.timeout * 1000);
   }
 });
 

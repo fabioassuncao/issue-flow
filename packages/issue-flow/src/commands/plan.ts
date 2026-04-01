@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { runHeadless } from '../core/headless.js';
 import { applyPlaceholders, loadPrompt } from '../core/prompt-resolver.js';
 import { loadTaskPlan, saveTaskPlan } from '../core/state-manager.js';
+import { getGlobalTimeout } from '../core/verbose.js';
 import { taskPlanSchema } from '../schemas.js';
 import { printError, printSuccess } from '../ui/logger.js';
 
@@ -34,7 +35,7 @@ export async function runPlan(issue: string): Promise<number> {
   const result = await runHeadless({
     prompt,
     maxTurns: 25,
-    timeout: 300_000,
+    timeout: getGlobalTimeout() ?? 300_000,
     outputFormat: 'text',
     allowedTools: ['Bash', 'Read', 'Glob', 'Grep', 'Write'],
     statusMessage: `Converting PRD to task plan for issue #${issueNumber}...`,

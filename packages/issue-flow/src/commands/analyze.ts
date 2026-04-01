@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { runHeadless } from '../core/headless.js';
 import { applyPlaceholders, loadPrompt } from '../core/prompt-resolver.js';
 import { loadTaskPlan, saveTaskPlan } from '../core/state-manager.js';
+import { getGlobalTimeout } from '../core/verbose.js';
 import { printError, printInfo, printSuccess } from '../ui/logger.js';
 
 export async function runAnalyze(issue: string): Promise<number> {
@@ -21,7 +22,7 @@ export async function runAnalyze(issue: string): Promise<number> {
   const result = await runHeadless({
     prompt,
     maxTurns: 30,
-    timeout: 300_000,
+    timeout: getGlobalTimeout() ?? 300_000,
     outputFormat: 'text',
     allowedTools: ['Bash', 'Read', 'Glob', 'Grep', 'Write'],
     statusMessage: `Analyzing issue #${issueNumber}...`,

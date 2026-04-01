@@ -3,6 +3,7 @@ import { execa } from 'execa';
 import { runHeadless } from '../core/headless.js';
 import { applyPlaceholders, loadPrompt } from '../core/prompt-resolver.js';
 import { loadTaskPlan, saveTaskPlan } from '../core/state-manager.js';
+import { getGlobalTimeout } from '../core/verbose.js';
 import { printError, printSuccess } from '../ui/logger.js';
 
 /**
@@ -42,7 +43,7 @@ export async function runPr(issue: string): Promise<number> {
   const result = await runHeadless({
     prompt,
     maxTurns: 15,
-    timeout: 180_000,
+    timeout: getGlobalTimeout() ?? 300_000,
     outputFormat: 'text',
     allowedTools: ['Bash', 'Read', 'Glob', 'Grep'],
     statusMessage: `Creating PR for issue #${issueNumber}...`,
