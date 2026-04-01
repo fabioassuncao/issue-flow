@@ -235,7 +235,7 @@ Artifacts kept:
   - Branch: issue/{ISSUE_NUMBER}-{slug}
 
 You can resume later by:
-  - Using @"resolve-issue (agent)" #{ISSUE_NUMBER}
+  - Using @resolve-issue #{ISSUE_NUMBER}
   - Using /execute-tasks directly for issue #{ISSUE_NUMBER}
   - Headless: claude --agent resolve-issue -p "#{ISSUE_NUMBER} --mode auto"
 
@@ -259,7 +259,7 @@ User stories ({N} total):
   ...
 
 To start development:
-  - @"resolve-issue (agent)" #{ISSUE_NUMBER} (interactive)
+  - @resolve-issue #{ISSUE_NUMBER} (interactive)
   - claude --agent resolve-issue -p "#{ISSUE_NUMBER} --mode auto" (headless)
   - ./scripts/ralph/ralph.sh --issue {ISSUE_NUMBER} (for many stories)
 ```

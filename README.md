@@ -19,12 +19,12 @@ Skills and sub-agents are invoked differently in Claude Code:
 | | Skills | Sub-agent (`resolve-issue`) |
 |--|--------|---------------------------|
 | **Slash command** | `/skill-name` (e.g., `/generate-issue`, `/review-issue`) | Not available — sub-agents do not use `/` |
-| **@-mention** | Not available | `@"resolve-issue (agent)"` + instructions |
+| **@-mention** | Not available | `@resolve-issue` + instructions |
 | **Natural language** | Claude auto-invokes based on description | Claude auto-delegates based on description |
 | **Session-wide** | Not available | `claude --agent resolve-issue` |
 | **Headless** | `claude -p "/review-issue #42"` | `claude --agent resolve-issue -p "#42 --mode auto"` |
 
-> **Important**: The `resolve-issue` sub-agent is **not** a skill and cannot be invoked with `/resolve-issue`. Use `@"resolve-issue (agent)"` or natural language instead.
+> **Important**: The `resolve-issue` sub-agent is **not** a skill and cannot be invoked with `/resolve-issue`. Use `@resolve-issue` or natural language instead.
 
 ## Components
 
@@ -49,9 +49,9 @@ Skills and sub-agents are invoked differently in Claude Code:
 
 **Via @-mention (explicit):**
 ```
-@"resolve-issue (agent)" #42
-@"resolve-issue (agent)" #42 --mode auto
-@"resolve-issue (agent)" #42 --mode manual
+@resolve-issue #42
+@resolve-issue #42 --mode auto
+@resolve-issue #42 --mode manual
 ```
 
 **Via natural language (Claude auto-delegates):**
@@ -188,7 +188,7 @@ For issues with many user stories (10+), the Ralph Loop is an alternative to the
 
 Ralph is **not** a replacement for the pipeline — it replaces only the execution phase. Use it after planning is complete:
 
-1. Invoke `@"resolve-issue (agent)" #42 --mode manual` to generate artifacts
+1. Invoke `@resolve-issue #42 --mode manual` to generate artifacts
 2. Run `./scripts/ralph/ralph.sh --issue 42` to execute with context-reset per iteration
 
 Both `execute-tasks` and Ralph consume the same `tasks.json` format.
@@ -229,7 +229,7 @@ If those artifacts do not already exist, the script stops with an error.
 
 Run Ralph only after the planning pipeline is finished. In the normal flow, that means:
 
-1. invoke the `resolve-issue` sub-agent for the target issue (via `@"resolve-issue (agent)" #N --mode manual` or natural language)
+1. invoke the `resolve-issue` sub-agent for the target issue (via `@resolve-issue #N --mode manual` or natural language)
 2. let it complete analysis, branch creation, PRD generation, and JSON task-plan generation
 3. in `manual` mode it stops automatically; in `semi_auto` mode answer "no" when asked whether to proceed
 4. verify these inputs exist:
@@ -311,9 +311,9 @@ claude -p "/create-pr for issue #42"
 
 **Sub-agent (@-mention):**
 ```
-@"resolve-issue (agent)" #42
+@resolve-issue #42
 
-@"resolve-issue (agent)" #42 --mode auto
+@resolve-issue #42 --mode auto
 ```
 
 **Sub-agent (natural language — Claude auto-delegates):**
