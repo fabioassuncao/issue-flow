@@ -1,0 +1,237 @@
+{
+  "project": "issue-flow",
+  "issueNumber": 8,
+  "issueUrl": "https://github.com/fabioassuncao/issue-flow/issues/8",
+  "branchName": "issue/8-migrar-ralph-sh-para-cli-nodejs-typescript-via-npx",
+  "description": "Migrar ralph.sh para CLI Node.js/TypeScript executavel via npx ralph-agent",
+  "issueStatus": "completed",
+  "completedAt": "2026-04-01T15:08:00Z",
+  "lastAttemptAt": "2026-04-01T15:08:00Z",
+  "lastError": null,
+  "correctionCycle": 0,
+  "maxCorrectionCycles": 3,
+  "pipeline": {
+    "analyzeCompleted": true,
+    "prdCompleted": true,
+    "jsonCompleted": true,
+    "executionCompleted": true,
+    "reviewCompleted": false,
+    "prCreated": false
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Inicializar projeto TypeScript com dependencias e configuracao de build",
+      "description": "As a developer, I want the TypeScript project scaffolded with all dependencies and build configuration so that subsequent stories have a working development environment.",
+      "acceptanceCriteria": [
+        "package.json criado em packages/ralph-agent/ com name ralph-agent, bin field, type module, engines >=18.0.0",
+        "Dependencias instaladas: commander, chalk, ora, execa",
+        "Dev dependencies: typescript, tsup, vitest, @types/node",
+        "tsconfig.json configurado para ES modules, target ES2022, strict mode",
+        "tsup.config.ts configurado para gerar dist/cli.js com shebang #!/usr/bin/env node",
+        "Build funciona: npm run build gera dist/cli.js executavel",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Implementar types.ts com interfaces compartilhadas",
+      "description": "As a developer, I want TypeScript interfaces for TaskPlan, UserStory, PipelineState, and LastError so that all modules have type-safe contracts for tasks.json data.",
+      "acceptanceCriteria": [
+        "Interface UserStory com campos: id, title, description, acceptanceCriteria, priority, passes, notes",
+        "Interface LastError com campos: category, message, at",
+        "Interface PipelineState com campos: analyzeCompleted, prdCompleted, jsonCompleted, executionCompleted, reviewCompleted, prCreated",
+        "Interface TaskPlan com todos os campos do tasks.json",
+        "Tipos exportados e importaveis por outros modulos",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Implementar utils/shell.ts e utils/git.ts",
+      "description": "As a developer, I want utility functions for shell execution and git operations so that other modules can execute commands and detect git context.",
+      "acceptanceCriteria": [
+        "shell.ts: funcao exec que usa execa para executar comandos com captura de stdout/stderr",
+        "git.ts: funcao getProjectRoot() que retorna o root do repositorio git",
+        "git.ts: funcao getCurrentBranch() que retorna o branch atual",
+        "Tratamento de erros quando git nao esta disponivel ou nao e um repositorio",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Implementar core/state-manager.ts para CRUD tipado de tasks.json",
+      "description": "As a developer, I want a typed state manager that reads and writes tasks.json so that all JSON manipulation uses TypeScript instead of jq.",
+      "acceptanceCriteria": [
+        "Funcao loadTaskPlan(path) que le e parseia tasks.json com validacao de estrutura",
+        "Funcao saveTaskPlan(path, plan) que escreve atomicamente (write-to-temp + rename)",
+        "Funcao initializeState(plan) que preenche campos default",
+        "Funcao allStoriesPass(plan) que verifica se todas as stories tem passes=true",
+        "Funcao markStoryPassing(plan, storyId) que marca uma story como passes=true",
+        "Funcao markIssueInProgress(plan) e markIssueCompleted(plan) para atualizar status",
+        "Funcoes setLastError(plan, category, message) e clearLastError(plan, attemptStartedAt)",
+        "Escrita atomica: write-to-temp + rename para evitar corrupcao",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Implementar core/prompt-resolver.ts para resolucao de prompt.md",
+      "description": "As a developer, I want a prompt resolver that loads prompt.md locally or downloads remotely, and replaces placeholders.",
+      "acceptanceCriteria": [
+        "Funcao resolvePrompt(options) que busca prompt.md local ou remoto via fetch",
+        "Funcao applyPlaceholders(template, vars) que substitui __PRD_FILE__ e __PROGRESS_FILE__",
+        "Download remoto usa fetch nativo do Node 18+",
+        "Erro claro se prompt.md nao encontrado e download falha",
+        "Cleanup de arquivo temporario em caso de download remoto",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Implementar utils/retry.ts com deteccao de falhas transientes e backoff",
+      "description": "As a developer, I want retry logic with exponential backoff and transient failure detection.",
+      "acceptanceCriteria": [
+        "Funcao isTransientFailure(exitCode, output) que detecta falhas transientes",
+        "Funcao retryDelaySeconds(attempt, baseSeconds, maxSeconds) com backoff exponencial",
+        "Mesmas heuristicas de deteccao do script Bash original",
+        "Base default 30s, max default 900s",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Implementar ui/logger.ts, ui/progress.ts e ui/summary.ts",
+      "description": "As a developer, I want terminal UI utilities for the CLI output.",
+      "acceptanceCriteria": [
+        "logger.ts: funcoes printSuccess, printError, printWarning, printRetry, printInfo com chalk",
+        "logger.ts: deteccao de NO_COLOR e non-TTY para desabilitar cores/unicode",
+        "progress.ts: funcao printProgressBar e printIterationHeader com status de cada story",
+        "summary.ts: funcao printBox com box drawing e fallback ASCII",
+        "summary.ts: funcao printStartupHeader e printSummaryBox",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Implementar core/executor.ts para invocacao do Claude CLI",
+      "description": "As a developer, I want an executor module that invokes Claude CLI via execa.",
+      "acceptanceCriteria": [
+        "Funcao executeClaude(prompt) que executa claude --dangerously-skip-permissions --print via execa",
+        "Captura de stdout e stderr combinados",
+        "Retorno de { exitCode, output } sem lancar excecao em exit code nao-zero",
+        "Output do Claude redirecionado para stderr do processo",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Implementar config.ts para resolucao de configuracao e CLI parsing",
+      "description": "As a developer, I want configuration resolution that merges CLI arguments with defaults.",
+      "acceptanceCriteria": [
+        "Interface RalphConfig com todos os campos necessarios",
+        "Defaults identicos ao Bash: retryLimit=10, retryForever=false, backoffBase=30, backoffMax=900",
+        "Resolucao de paths baseados em issueNumber ou modo standalone",
+        "Validacao de dependencias: git e claude disponiveis",
+        "Hints de instalacao por plataforma",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Implementar core/engine.ts com loop principal",
+      "description": "As a developer, I want the main engine loop that orchestrates all modules.",
+      "acceptanceCriteria": [
+        "Funcao runEngine(config) que executa o loop principal",
+        "Inicializacao: carrega tasks.json, valida estado, verifica se ja completo",
+        "Archive de run anterior se branch mudou",
+        "Loop com verificacao de limite, substituicao de placeholders, execucao do Claude",
+        "Deteccao de <promise>COMPLETE</promise> com validacao",
+        "Retry com backoff para falhas transientes",
+        "Exit com erro para falhas fatais",
+        "Decrementa iteracao em retry",
+        "Summary box no final",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Implementar cli.ts como entry point com commander",
+      "description": "As a developer, I want a CLI entry point using commander that parses arguments and invokes the engine.",
+      "acceptanceCriteria": [
+        "Parsing de flags: --issue N, --max-iterations N, --retry-limit N, --retry-forever, --help",
+        "Argumento posicional numerico como alias para --max-iterations",
+        "Validacao de argumentos numericos",
+        "Invocacao do engine com config resolvido",
+        "Exit codes identicos ao Bash",
+        "Build gera dist/cli.js executavel com shebang",
+        "npx ralph-agent --help exibe uso",
+        "Typecheck passes"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Adicionar testes unitarios para state-manager, retry e prompt-resolver",
+      "description": "As a developer, I want unit tests for the critical modules.",
+      "acceptanceCriteria": [
+        "Testes para state-manager: load, save, initialize, allStoriesPass, markStoryPassing, markIssueCompleted, setLastError, clearLastError",
+        "Testes para retry: isTransientFailure, retryDelaySeconds",
+        "Testes para prompt-resolver: applyPlaceholders",
+        "Todos os testes passam com npx vitest run",
+        "Typecheck passes"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Configurar build final, npm publish e documentacao",
+      "description": "As a developer, I want the package fully configured for npm publish with updated documentation.",
+      "acceptanceCriteria": [
+        "package.json com files: [dist], version 1.0.0, description, keywords, license, repository",
+        "npm run build gera pacote funcional",
+        "README.md em packages/ralph-agent/ com instrucoes de uso e migracao",
+        "Referencia atualizada no scripts/ralph/README.md mencionando a nova CLI",
+        ".npmignore ou files field configurado para excluir src/ e testes",
+        "Typecheck passes"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}
