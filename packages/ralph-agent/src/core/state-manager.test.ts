@@ -89,7 +89,7 @@ describe('state-manager', () => {
       await writeFile(filePath, JSON.stringify({ project: 'test' }), 'utf-8');
 
       await expect(loadTaskPlan(filePath)).rejects.toThrow(
-        'missing userStories array',
+        'Invalid tasks.json',
       );
     });
 

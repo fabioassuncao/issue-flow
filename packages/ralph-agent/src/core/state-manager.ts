@@ -1,6 +1,8 @@
 import { readFile, writeFile, rename, mkdtemp } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
+import { ZodError } from 'zod';
+import { taskPlanSchema } from '../schemas.js';
 import type { TaskPlan, LastError, PipelineState } from '../types.js';
 
 /**
@@ -16,13 +18,19 @@ export function isoNow(): string {
  */
 export async function loadTaskPlan(path: string): Promise<TaskPlan> {
   const content = await readFile(path, 'utf-8');
-  const plan = JSON.parse(content) as TaskPlan;
+  const raw = JSON.parse(content);
 
-  if (!plan.userStories || !Array.isArray(plan.userStories)) {
-    throw new Error(`Invalid tasks.json at ${path}: missing userStories array`);
+  try {
+    return taskPlanSchema.parse(raw) as TaskPlan;
+  } catch (err) {
+    if (err instanceof ZodError) {
+      const issues = err.issues
+        .map((i) => `  - ${i.path.join('.')}: ${i.message}`)
+        .join('\n');
+      throw new Error(`Invalid tasks.json at ${path}:\n${issues}`);
+    }
+    throw err;
   }
-
-  return plan;
 }
 
 /**
