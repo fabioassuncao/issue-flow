@@ -23,7 +23,7 @@ Work on issue #42
 
 ## How It Works
 
-The skill orchestrates 4 sub-skills through a phased pipeline:
+The skill orchestrates 5 sub-skills through a phased pipeline:
 
 ```
 Phase 0  → Checks for existing work in progress
@@ -33,6 +33,7 @@ Phase 3a → [generate-prd]         Generates PRD in issues/{N}/prd.md
 Phase 3b → [convert-prd-to-json]  Converts to issues/{N}/tasks.json
 Phase 3c → Awaits confirmation     Presents the plan and asks for "yes" to continue
 Phase 4  → [execute-tasks]        Implements each user story with commits
+Phase 5  → [review-issue]         Validates the resolution and closes or reports
 ```
 
 > The skill **pauses and awaits confirmation** before starting implementation. You will see the complete plan before any code is written.
@@ -74,6 +75,7 @@ Each sub-skill can also be used independently:
 | [generate-prd](../generate-prd/) | `Generate a PRD for issue #42` |
 | [convert-prd-to-json](../convert-prd-to-json/) | `Convert the PRD for issue #42 to a task plan` |
 | [execute-tasks](../execute-tasks/) | `Execute the task plan for issue #42` |
+| [review-issue](../review-issue/) | `Review issue #42` |
 
 ## Requirements
 

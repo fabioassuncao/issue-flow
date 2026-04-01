@@ -13,6 +13,7 @@ A collection of [agent skills](https://agentskills.io) for turning GitHub issues
 | [`convert-prd-to-json`](skills/convert-prd-to-json/) | Converts a PRD markdown file into a structured JSON task plan for autonomous execution. |
 | [`execute-tasks`](skills/execute-tasks/) | Iteratively implements user stories from a JSON task plan with quality checks and commits. |
 | [`create-pr`](skills/create-pr/) | Creates a Pull Request from the current branch with context from issue data, PRD, and git history. |
+| [`review-issue`](skills/review-issue/) | Reviews whether a GitHub issue has been fully resolved by analyzing the implementation, running tests, and checking for regressions. |
 
 ## End-to-End Workflow
 
@@ -36,6 +37,10 @@ flowchart TD
     N -- No --> L
     N -- Yes --> O[Issue completed]
     O -.-> R[create-pr<br/>Open Pull Request]
+    O --> V[review-issue]
+    V --> S{Fully resolved?}
+    S -- Yes --> T[Close issue]
+    S -- No --> U[Report missing items]
     J -- No --> P[Stop and keep artifacts]
     P --> Q[Later: resume with resolve-issue, execute-tasks, or optional ralph.sh]
 ```
@@ -114,6 +119,22 @@ After all stories pass and the implementation is complete, use [`create-pr`](ski
 - creates a PR with a structured description (summary, changes, user stories, review checklist) and links it to the issue with `Closes #N`
 
 This step is optional — you can always create the PR manually if you prefer.
+</details>
+
+<details>
+<summary><strong>6. Validate the resolution with <code>review-issue</code></strong></summary>
+
+After implementation, `review-issue` validates that the issue was actually resolved:
+
+1. fetches the issue context and linked PRs
+2. detects the project stack
+3. traces all code changes related to the issue
+4. maps each acceptance criterion to specific code changes
+5. runs the project's test suite
+6. checks for regressions in shared code
+7. produces a structured verdict: **APPROVED** or **REJECTED**
+
+If every requirement is met, tests pass, and no regressions are detected, the skill closes the issue with a summary comment. Otherwise, it adds a detailed comment describing what still needs attention.
 </details>
 
 ## Ralph (Advanced / Optional)
@@ -207,6 +228,8 @@ issues/
 Create an issue for adding rate limiting to the API
 
 Resolve issue #42
+
+Review issue #42
 ```
 
 See the [`resolve-issue` README](skills/resolve-issue/) for the complete pipeline documentation, or each skill's README for standalone usage.

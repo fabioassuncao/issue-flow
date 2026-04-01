@@ -11,9 +11,9 @@
     {
       "name": "issue-flow",
       "source": "./",
-      "description": "End-to-end GitHub issue resolution with architect-quality issue creation, PRD generation, task planning, and autonomous implementation",
+      "description": "End-to-end GitHub issue resolution with architect-quality issue creation, PRD generation, task planning, autonomous implementation, and post-implementation review",
       "version": "1.0.0",
-      "keywords": ["github", "issues", "prd", "automation", "task-planning", "code-generation"],
+      "keywords": ["github", "issues", "prd", "automation", "task-planning", "code-generation", "review"],
       "category": "productivity",
       "skills": "./skills/"
     }
