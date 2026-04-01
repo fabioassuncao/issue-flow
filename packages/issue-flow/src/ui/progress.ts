@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import type { UserStory } from '../types.js';
+import { getOutputCallback } from '../core/verbose.js';
 import { formatDuration, getIcons, useColor, useUnicode } from './logger.js';
 
 /**
@@ -30,6 +31,9 @@ export function printProgressBar(passed: number, total: number): string {
 
 /**
  * Print the iteration header showing story statuses and progress bar.
+ *
+ * When a global output callback is set (e.g., inside a listr2 task),
+ * output is routed through it instead of console.log.
  */
 export function printIterationHeader(
   iteration: number,
@@ -38,19 +42,21 @@ export function printIterationHeader(
 ): void {
   const icons = getIcons();
   const colored = useColor();
+  const cb = getOutputCallback();
+  const log = cb ?? console.log;
 
   const iterLabel = maxIter ? `Iteration ${iteration} of ${maxIter}` : `Iteration ${iteration}`;
 
   const total = stories.length;
   const passed = stories.filter((s) => s.passes).length;
 
-  console.log('');
+  const lines: string[] = [];
+
   if (colored) {
-    console.log(chalk.blue(`\u2501\u2501\u2501 ${icons.start} ${iterLabel} \u2501\u2501\u2501`));
+    lines.push(chalk.blue(`\u2501\u2501\u2501 ${icons.start} ${iterLabel} \u2501\u2501\u2501`));
   } else {
-    console.log(`--- ${icons.start} ${iterLabel} ---`);
+    lines.push(`--- ${icons.start} ${iterLabel} ---`);
   }
-  console.log('');
 
   // Display each story status
   let foundFirstPending = false;
@@ -72,11 +78,21 @@ export function printIterationHeader(
       colorFn = colored ? chalk.gray : (s: string) => s;
     }
 
-    console.log(colorFn(`  ${icon} ${story.id}: ${story.title}`));
+    lines.push(colorFn(`  ${icon} ${story.id}: ${story.title}`));
   }
 
-  console.log('');
-  console.log(`  ${printProgressBar(passed, total)}`);
+  lines.push(`  ${printProgressBar(passed, total)}`);
+
+  if (cb) {
+    // Send as single output to listr2 task context
+    cb(lines.join('\n'));
+  } else {
+    console.log('');
+    for (const line of lines) {
+      console.log(line);
+    }
+    console.log('');
+  }
 }
 
 /* ── Pipeline progress tracker ────────────────────────────────────────── */

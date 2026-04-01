@@ -8,6 +8,7 @@ import { printStartupHeader, printSummaryBox } from '../ui/summary.js';
 import { isTransientFailure, retryDelaySeconds } from '../utils/retry.js';
 import { executeClaude } from './executor.js';
 import { applyPlaceholders, loadPrompt } from './prompt-resolver.js';
+import { getOutputCallback } from './verbose.js';
 import {
   allStoriesPass,
   clearLastError,
@@ -26,6 +27,19 @@ import {
  */
 function sleep(seconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+}
+
+/**
+ * Emit a message through the output callback if available, otherwise console.log.
+ * Used for bare console.log calls in engine functions so they route through listr2.
+ */
+function emitLog(message: string): void {
+  const cb = getOutputCallback();
+  if (cb) {
+    cb(message);
+  } else {
+    console.log(message);
+  }
 }
 
 /**
@@ -109,7 +123,7 @@ export async function runEngine(config: EngineConfig, paths: ResolvedPaths): Pro
   if (!existsSync(paths.prdFile)) {
     printError(`PRD file not found at ${paths.prdFile}`);
     if (config.issueNumber) {
-      console.log(`Have you run the resolve-issue skill for issue #${config.issueNumber} first?`);
+      emitLog(`Have you run the resolve-issue skill for issue #${config.issueNumber} first?`);
     }
     return 1;
   }
@@ -120,7 +134,7 @@ export async function runEngine(config: EngineConfig, paths: ResolvedPaths): Pro
 
   // Check if already completed
   if (plan.issueStatus === 'completed' && allStoriesPass(plan)) {
-    console.log(`Issue already marked complete in ${paths.prdFile}`);
+    emitLog(`Issue already marked complete in ${paths.prdFile}`);
     return 0;
   }
 
@@ -140,7 +154,7 @@ export async function runEngine(config: EngineConfig, paths: ResolvedPaths): Pro
 
   // Check if all stories already pass
   if (allStoriesPass(plan)) {
-    console.log('All user stories already pass. Marking issue as completed.');
+    emitLog('All user stories already pass. Marking issue as completed.');
     plan = markIssueCompleted(plan);
     await saveTaskPlan(paths.prdFile, plan);
     return 0;
@@ -223,7 +237,7 @@ export async function runEngine(config: EngineConfig, paths: ResolvedPaths): Pro
           config.backoffMaxSeconds,
         );
 
-        console.log('');
+        emitLog('');
         printRetry(
           `Transient Claude failure on iteration ${i} (attempt ${retryCount}). Retrying in ${delaySeconds}s.`,
         );
@@ -276,7 +290,7 @@ export async function runEngine(config: EngineConfig, paths: ResolvedPaths): Pro
       );
       await saveTaskPlan(paths.prdFile, plan);
 
-      console.log('');
+      emitLog('');
       printWarning(
         'Claude returned a completion signal, but tasks.json still has pending stories. Ignoring completion and continuing.',
       );

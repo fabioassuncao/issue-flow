@@ -86,16 +86,13 @@ export async function runPipelineWithRenderer(
           if (!runner) {
             throw new Error(`No runner defined for phase: ${phase}`);
           }
-          // In verbose mode, route output through task.output so listr2 controls rendering
-          if (verbose) {
-            setOutputCallback((line: string) => { task.output = line; });
-          }
+          // Route all output (print functions + verbose streaming) through task.output
+          // so listr2 controls rendering and prevents concurrent stdout writes
+          setOutputCallback((line: string) => { task.output = line; });
           try {
             await runner();
           } finally {
-            if (verbose) {
-              setOutputCallback(undefined);
-            }
+            setOutputCallback(undefined);
           }
         },
         rendererOptions: {
