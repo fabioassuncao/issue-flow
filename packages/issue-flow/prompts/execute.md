@@ -1,4 +1,4 @@
-# Ralph Agent Instructions
+# Issue Flow Agent Instructions
 
 You are an autonomous coding agent working on a software project.
 
@@ -90,12 +90,12 @@ If no browser tools are available, note in your progress report that manual brow
 
 ## Pipeline State Tracking
 
-The task plan may contain a `pipeline` object that tracks orchestrator phase completion. When running through Ralph (outside the orchestrator), update these fields as appropriate:
+The task plan may contain a `pipeline` object that tracks orchestrator phase completion. Update these fields as appropriate:
 
 - After completing a story: set `pipeline.executionCompleted` to `false` (still in progress)
 - After ALL stories complete: set `pipeline.executionCompleted` to `true`
 
-The task plan may also contain `correctionCycle` and `maxCorrectionCycles` fields. These track how many review-fix cycles have occurred. Ralph does not manage the correction loop — that is handled by the orchestrator or manually.
+The task plan may also contain `correctionCycle` and `maxCorrectionCycles` fields. These track how many review-fix cycles have occurred. The execution loop does not manage the correction loop — that is handled by the orchestrator or manually.
 
 If these fields don't exist in the task plan (older format), ignore them — they are optional.
 

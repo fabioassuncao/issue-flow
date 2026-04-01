@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyPlaceholders } from './prompt-resolver.js';
+import { applyPlaceholders, loadPrompt } from './prompt-resolver.js';
 
 describe('applyPlaceholders', () => {
   it('should replace __PRD_FILE__ placeholder', () => {
@@ -46,5 +46,29 @@ describe('applyPlaceholders', () => {
   it('should handle empty template', () => {
     const result = applyPlaceholders('', { __PRD_FILE__: '/path' });
     expect(result).toBe('');
+  });
+});
+
+describe('loadPrompt', () => {
+  it('should load the execute prompt template', async () => {
+    const content = await loadPrompt('execute');
+    expect(content).toContain('__PRD_FILE__');
+    expect(content).toContain('__PROGRESS_FILE__');
+  });
+
+  it('should load the analyze prompt template', async () => {
+    const content = await loadPrompt('analyze');
+    expect(content).toContain('__ISSUE_NUMBER__');
+    expect(content).toContain('__ANALYSIS_PATH__');
+  });
+
+  it('should load the review prompt template', async () => {
+    const content = await loadPrompt('review');
+    expect(content).toContain('__ISSUE_NUMBER__');
+    expect(content).toContain('<review-result>');
+  });
+
+  it('should throw for a non-existent prompt', async () => {
+    await expect(loadPrompt('nonexistent')).rejects.toThrow('Prompt template not found');
   });
 });

@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import { runHeadless } from '../core/headless.js';
+import { applyPlaceholders, loadPrompt } from '../core/prompt-resolver.js';
 import { loadTaskPlan, saveTaskPlan } from '../core/state-manager.js';
 import { printError, printInfo, printSuccess } from '../ui/logger.js';
 
@@ -41,36 +42,15 @@ function parseReviewResult(output: string): ReviewResult {
 export async function runReview(issue: string): Promise<number> {
   const issueNumber = issue.replace(/^#/, '');
   const issueDir = join('issues', issueNumber);
+  const tasksPath = join(issueDir, 'tasks.json');
 
   printInfo(`Reviewing issue #${issueNumber} resolution...`);
 
-  const prompt = `You are reviewing whether GitHub issue #${issueNumber} has been fully resolved.
-
-IMPORTANT: You are running in --orchestrator mode. Do NOT close the issue directly. Only report results.
-
-Steps:
-1. Fetch the issue data using: gh issue view ${issueNumber} --json title,body,labels
-2. Read the task plan from ${join(issueDir, 'tasks.json')} to understand what was supposed to be implemented
-3. Analyze the codebase to verify all acceptance criteria are met
-4. Run the project's test suite and typecheck
-5. Check for regressions
-
-At the end, output your result in this exact format:
-
-<review-result>
-STATUS: PASS
-</review-result>
-
-Or if there are issues:
-
-<review-result>
-STATUS: FAIL
-FINDINGS:
-- Finding 1
-- Finding 2
-</review-result>
-
-IMPORTANT: You MUST include the <review-result> block in your output.`;
+  const template = await loadPrompt('review');
+  const prompt = applyPlaceholders(template, {
+    __ISSUE_NUMBER__: issueNumber,
+    __TASKS_PATH__: tasksPath,
+  });
 
   const result = await runHeadless({
     prompt,
@@ -89,7 +69,6 @@ IMPORTANT: You MUST include the <review-result> block in your output.`;
 
   if (review.status === 'PASS') {
     // Update pipeline state
-    const tasksPath = join(issueDir, 'tasks.json');
     try {
       const plan = await loadTaskPlan(tasksPath);
       plan.pipeline.reviewCompleted = true;

@@ -95,7 +95,7 @@ flowchart TD
     W -- Yes --> X["Reset affected stories<br/>Re-execute + re-review"]
     X --> V
     W -- No --> Y[Stop and report to user]
-    P --> Q["Resume later: resolve-issue, execute-tasks, or ralph.sh"]
+    P --> Q["Resume later: resolve-issue or execute-tasks"]
 ```
 
 ## Interactive Walkthrough
@@ -178,91 +178,6 @@ The `tasks.json` file tracks pipeline state:
 When re-invoking `resolve-issue`, the sub-agent reads these flags and resumes from the last incomplete phase. In `auto` mode, this happens without any user interaction.
 </details>
 
-<details>
-<summary><strong>5. Ralph Loop for large task plans</strong></summary>
-
-For issues with many user stories (10+), the Ralph Loop is an alternative to the built-in `execute-tasks`. It runs fresh Claude Code sessions per story, avoiding context window exhaustion.
-
-Ralph is **not** a replacement for the pipeline -- it replaces only the execution phase. Use it after planning is complete:
-
-1. Invoke `@resolve-issue #42 --mode manual` to generate artifacts
-2. Run `./scripts/ralph/ralph.sh --issue 42` to execute with context-reset per iteration
-
-Both `execute-tasks` and Ralph consume the same `tasks.json` format.
-</details>
-
-## Ralph (Advanced / Optional)
-
-[Ralph](../scripts/ralph/) is not part of issue creation and not part of planning. Its role starts only after `resolve-issue` has already created the branch and planning artifacts.
-
-### What Ralph does
-
-Ralph repeatedly runs a fresh Claude Code session against the existing task plan. In each iteration it:
-
-1. reads `issues/{N}/tasks.json`
-2. reads `issues/{N}/progress.txt`
-3. checks out the branch from `branchName`
-4. picks the highest-priority story where `passes: false`
-5. implements only that story
-6. runs quality checks
-7. commits if checks pass
-8. updates `tasks.json` and appends to `progress.txt`
-9. repeats until every story passes or a fatal stop condition occurs
-
-Because every iteration starts with clean context, memory persists through git history, `progress.txt`, and the task plan state in `tasks.json`.
-
-### What Ralph does not do
-
-Ralph does not:
-- create the GitHub issue
-- analyze the issue
-- generate the PRD
-- convert the PRD into the task plan
-- decide scope for you
-
-If those artifacts do not already exist, the script stops with an error.
-
-### Before running Ralph
-
-Run Ralph only after the planning pipeline is finished. In the normal flow, that means:
-
-1. invoke the `resolve-issue` sub-agent for the target issue (via `@resolve-issue #N --mode manual` or natural language)
-2. let it complete analysis, branch creation, PRD generation, and JSON task-plan generation
-3. in `manual` mode it stops automatically
-4. verify these inputs exist:
-   - `issues/{N}/prd.md`
-   - `issues/{N}/tasks.json`
-   - branch `issue/{N}-{slug}`
-5. make sure the required tools are installed:
-   - `claude`
-   - `jq`
-   - `git`
-   - `curl` or `wget` only when running remotely
-
-`tasks.json` is the critical input. In `--issue` mode Ralph reads from `issues/{N}/tasks.json` and will fail immediately if that file is missing.
-
-### Run Ralph
-
-```bash
-# Local (from a clone of this repo)
-./scripts/ralph/ralph.sh --issue 42
-
-# Remote (from any project -- no clone needed)
-curl -sSL https://raw.githubusercontent.com/fabioassuncao/issue-flow/main/scripts/ralph/ralph.sh | bash -s -- --issue 42
-```
-
-Useful options:
-
-```bash
-# Stop after 15 iterations
-./scripts/ralph/ralph.sh --issue 42 --max-iterations 15
-
-# Retry transient Claude failures forever
-./scripts/ralph/ralph.sh --issue 42 --retry-forever
-```
-
-In remote mode, `prompt.md` is downloaded automatically and cleaned up on exit. See the [Ralph README](../scripts/ralph/) for the full script documentation.
-
 ## Installation (Claude Code)
 
 Issue Flow has two types of components with different installation methods:
@@ -327,13 +242,12 @@ Without the `resolve-issue` sub-agent, each skill can still be used independentl
 | Execute tasks (`execute-tasks`) | Yes |
 | Create PRs (`create-pr`) | Yes |
 | Review issues (`review-issue`) | Yes |
-| Ralph Loop (`ralph.sh`) | Yes |
 | **Full orchestrated pipeline** | **No -- requires sub-agent** |
 | **Execution modes (auto/manual)** | **No -- requires sub-agent** |
 | **Auto-correction loop** | **No -- requires sub-agent** |
 | **Pipeline state resumption** | **No -- requires sub-agent** |
 
-Without the sub-agent, you can still run the full workflow manually by invoking each skill in sequence, or use Ralph for the execution phase.
+Without the sub-agent, you can still run the full workflow manually by invoking each skill in sequence.
 
 ## Headless / CI Usage
 
@@ -348,9 +262,6 @@ claude --agent resolve-issue -p "#42 --mode manual"
 claude -p "/execute-tasks for issue #42"
 claude -p "/review-issue #42"
 claude -p "/create-pr for issue #42"
-
-# Execute with context-reset (many stories)
-./scripts/ralph/ralph.sh --issue 42
 ```
 
 ## Quick Start (Interactive)

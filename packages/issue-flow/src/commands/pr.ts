@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { execa } from 'execa';
 import { runHeadless } from '../core/headless.js';
+import { applyPlaceholders, loadPrompt } from '../core/prompt-resolver.js';
 import { loadTaskPlan, saveTaskPlan } from '../core/state-manager.js';
 import { printError, printInfo, printSuccess } from '../ui/logger.js';
 
@@ -15,6 +16,7 @@ function parsePrUrl(output: string): string | null {
 export async function runPr(issue: string): Promise<number> {
   const issueNumber = issue.replace(/^#/, '');
   const issueDir = join('issues', issueNumber);
+  const tasksPath = join(issueDir, 'tasks.json');
 
   printInfo(`Creating PR for issue #${issueNumber}...`);
 
@@ -32,25 +34,12 @@ export async function runPr(issue: string): Promise<number> {
     return 1;
   }
 
-  const prompt = `You are creating a pull request for issue #${issueNumber} on branch ${branchName}.
-
-Steps:
-1. Fetch the issue data: gh issue view ${issueNumber} --json title,body
-2. Read the task plan from ${join(issueDir, 'tasks.json')} if it exists
-3. Review the git log for this branch: git log main..HEAD --oneline
-4. Review the diff: git diff main...HEAD --stat
-5. Create a well-structured PR using gh pr create
-
-The PR should:
-- Have a clear, concise title (under 70 characters)
-- Reference the issue: "Closes #${issueNumber}"
-- Include a summary of changes
-- Include a test plan
-
-Use this command format:
-gh pr create --title "..." --body "..." --base main
-
-IMPORTANT: Output the PR URL after creation so it can be parsed.`;
+  const template = await loadPrompt('pr');
+  const prompt = applyPlaceholders(template, {
+    __ISSUE_NUMBER__: issueNumber,
+    __BRANCH_NAME__: branchName,
+    __TASKS_PATH__: tasksPath,
+  });
 
   const result = await runHeadless({
     prompt,
@@ -68,7 +57,6 @@ IMPORTANT: Output the PR URL after creation so it can be parsed.`;
   const prUrl = parsePrUrl(result.result);
 
   // Update pipeline state
-  const tasksPath = join(issueDir, 'tasks.json');
   try {
     const plan = await loadTaskPlan(tasksPath);
     plan.pipeline.prCreated = true;

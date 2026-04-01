@@ -220,7 +220,7 @@ User stories ({N} total):
 To start development:
   - @resolve-issue #{ISSUE_NUMBER} (interactive)
   - claude --agent resolve-issue -p "#{ISSUE_NUMBER} --mode auto" (headless)
-  - ./scripts/ralph/ralph.sh --issue {ISSUE_NUMBER} (for many stories)
+  - issue-flow execute --issue {ISSUE_NUMBER} (CLI)
 ```
 
 ---
@@ -379,23 +379,6 @@ Pipeline complete.
 
 ---
 
-## Ralph Loop Recommendation
-
-After completing Phase 3 (in any mode), if the task plan has a large number of user stories, suggest the Ralph Loop as an alternative execution strategy:
-
-**Threshold**: If tasks.json has more than 10 user stories, add a note:
-
-```
-This issue has {N} user stories. For large task plans, consider using the Ralph Loop
-for execution with context-reset per iteration:
-  ./scripts/ralph/ralph.sh --issue {ISSUE_NUMBER}
-```
-
-In `auto` mode, this is shown as informational only — the pipeline continues regardless.
-In `manual` mode, this is included in the final artifacts summary.
-
----
-
 ## Pipeline State Tracking
 
 The orchestrator updates `pipeline` flags in tasks.json after each phase completes. This enables resumption from any point.
@@ -447,7 +430,6 @@ issues/
 - **All commits must pass quality checks** — no broken code
 - **Always read `issues/{ISSUE_NUMBER}/progress.txt` before entering Phase 4** to understand what was done and what patterns were discovered
 - **Each skill invocation is a delegation** — wait for the skill to fully complete before moving to the next phase
-- **Never execute Ralph automatically** — it is an opt-in recommendation shown only as information
 - **The correction loop (Phase 6) has a hard limit** — after `maxCorrectionCycles` failed attempts, stop and escalate to the user
 - **Always update pipeline state** — after each phase completes, update the corresponding flag in tasks.json
 - **In auto mode, the pipeline MUST NOT stop** — proceed through all phases without interruption. Only non-recoverable errors cause a stop.

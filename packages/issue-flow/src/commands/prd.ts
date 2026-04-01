@@ -1,12 +1,14 @@
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { runHeadless } from '../core/headless.js';
+import { applyPlaceholders, loadPrompt } from '../core/prompt-resolver.js';
 import { loadTaskPlan, saveTaskPlan } from '../core/state-manager.js';
 import { printError, printInfo, printSuccess } from '../ui/logger.js';
 
 export async function runPrd(issue: string): Promise<number> {
   const issueNumber = issue.replace(/^#/, '');
   const issueDir = join('issues', issueNumber);
+  const prdPath = join(issueDir, 'prd.md');
 
   printInfo(`Generating PRD for issue #${issueNumber}...`);
 
@@ -22,37 +24,12 @@ export async function runPrd(issue: string): Promise<number> {
     // No analysis available — that's OK
   }
 
-  const prdPath = join(issueDir, 'prd.md');
-  const prompt = `You are generating a Product Requirements Document (PRD) for GitHub issue #${issueNumber} in this repository.${analysisContext}
-
-Steps:
-1. If no analysis was provided above, fetch the issue data using: gh issue view ${issueNumber} --json title,body,labels,comments
-2. Analyze the codebase to understand the context
-3. Generate a structured PRD
-
-Save the PRD to ${prdPath} with this structure:
-
-# PRD: [Issue Title]
-
-## Context
-[Why this change is needed]
-
-## Goals
-[What success looks like]
-
-## User Stories
-[US-001, US-002, etc. with acceptance criteria]
-
-## Technical Approach
-[High-level implementation strategy]
-
-## Out of Scope
-[What is explicitly NOT included]
-
-## Dependencies
-[External dependencies or prerequisites]
-
-IMPORTANT: You MUST write the PRD to the file path above. Do not just output it.`;
+  const template = await loadPrompt('prd');
+  const prompt = applyPlaceholders(template, {
+    __ISSUE_NUMBER__: issueNumber,
+    __ANALYSIS_CONTEXT__: analysisContext,
+    __PRD_PATH__: prdPath,
+  });
 
   const result = await runHeadless({
     prompt,

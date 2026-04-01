@@ -2,8 +2,6 @@
 
 A CLI that turns GitHub issues into pull requests autonomously. Orchestrates the full pipeline -- analyze, plan, implement, review, and deliver -- via [Claude Code](https://docs.anthropic.com/en/docs/claude-code) Headless mode.
 
-Built on the [Ralph pattern](https://ghuntley.com/ralph/) for autonomous AI agent loops.
-
 ## Quick Start
 
 ```bash
@@ -208,11 +206,7 @@ npx skills add fabioassuncao/issue-flow
 npx skills add fabioassuncao/issue-flow --skill generate-issue
 ```
 
-For full documentation on skills, the sub-agent, installation via `npx skills add`, the Ralph Loop for large task plans, and headless/CI usage, see **[Skills & Sub-Agent Architecture](docs/skills-and-agents.md)**.
-
-## Credits
-
-Based on [Geoffrey Huntley's Ralph pattern](https://ghuntley.com/ralph/) and the [snarktank/ralph](https://github.com/snarktank/ralph) repository.
+For full documentation on skills, the sub-agent, installation via `npx skills add`, and headless/CI usage, see **[Skills & Sub-Agent Architecture](docs/skills-and-agents.md)**.
 
 ## License
 

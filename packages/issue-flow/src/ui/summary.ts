@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import type { RalphConfig, TaskPlan } from '../types.js';
+import type { EngineConfig, TaskPlan } from '../types.js';
 import { getIcons, getTermWidth } from './logger.js';
 
 /**
@@ -86,9 +86,9 @@ export function printBox(lines: string[]): void {
 }
 
 /**
- * Print the startup header box showing Ralph configuration.
+ * Print the startup header box showing engine configuration.
  */
-export function printStartupHeader(config: RalphConfig, plan: TaskPlan): void {
+export function printStartupHeader(config: EngineConfig, plan: TaskPlan): void {
   const icons = getIcons();
 
   const storiesTotal = plan.userStories.length;
@@ -105,7 +105,7 @@ export function printStartupHeader(config: RalphConfig, plan: TaskPlan): void {
     : `${config.retryLimit} consecutive retries`;
 
   printBox([
-    `${icons.start} Ralph Wiggum`,
+    `${icons.start} Issue Flow`,
     '---',
     `Issue:       ${issueLabel}`,
     `Branch:      ${branchName}`,
@@ -164,7 +164,7 @@ export function printSummaryBox(
   }
 
   const boxLines = [
-    `${icons.end} Ralph Summary`,
+    `${icons.end} Issue Flow Summary`,
     '---',
     `Status:      ${statusIcon} ${statusLabel}`,
     `Stories:     ${storiesPassing}/${storiesTotal} passing`,

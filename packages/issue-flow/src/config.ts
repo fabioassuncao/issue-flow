@@ -1,6 +1,6 @@
 import { platform } from 'node:os';
 import { join } from 'node:path';
-import type { RalphConfig, ResolvedPaths } from './types.js';
+import type { EngineConfig, ResolvedPaths } from './types.js';
 import { getProjectRoot } from './utils/git.js';
 import { run } from './utils/shell.js';
 
@@ -15,9 +15,9 @@ export const DEFAULTS = {
 } as const;
 
 /**
- * Create a RalphConfig with defaults merged with provided options.
+ * Create a EngineConfig with defaults merged with provided options.
  */
-export function createConfig(options: Partial<RalphConfig>): RalphConfig {
+export function createConfig(options: Partial<EngineConfig>): EngineConfig {
   return {
     issueNumber: options.issueNumber,
     maxIterations: options.maxIterations,
@@ -40,7 +40,7 @@ export function createConfig(options: Partial<RalphConfig>): RalphConfig {
  *   progressFile = {projectRoot}/progress.txt
  */
 export async function resolvePaths(
-  config: RalphConfig,
+  config: EngineConfig,
   scriptDir?: string,
 ): Promise<ResolvedPaths> {
   const projectRoot = await getProjectRoot();

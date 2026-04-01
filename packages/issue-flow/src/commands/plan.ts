@@ -1,6 +1,7 @@
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { runHeadless } from '../core/headless.js';
+import { applyPlaceholders, loadPrompt } from '../core/prompt-resolver.js';
 import { loadTaskPlan, saveTaskPlan } from '../core/state-manager.js';
 import { taskPlanSchema } from '../schemas.js';
 import { printError, printInfo, printSuccess } from '../ui/logger.js';
@@ -22,55 +23,13 @@ export async function runPlan(issue: string): Promise<number> {
   }
 
   const tasksPath = join(issueDir, 'tasks.json');
-  const prompt = `You are converting a PRD into a structured JSON task plan for issue #${issueNumber}.
 
-Here is the PRD:
-
-${prdContent}
-
-Create a tasks.json file at ${tasksPath} with this exact structure:
-
-{
-  "project": "<repo-name>",
-  "issueNumber": ${issueNumber},
-  "issueUrl": "<github-issue-url>",
-  "branchName": "issue/${issueNumber}-<slug>",
-  "description": "<brief description>",
-  "issueStatus": "pending",
-  "completedAt": null,
-  "lastAttemptAt": null,
-  "lastError": null,
-  "correctionCycle": 0,
-  "maxCorrectionCycles": 3,
-  "pipeline": {
-    "analyzeCompleted": true,
-    "prdCompleted": true,
-    "jsonCompleted": true,
-    "executionCompleted": false,
-    "reviewCompleted": false,
-    "prCreated": false
-  },
-  "userStories": [
-    {
-      "id": "US-001",
-      "title": "...",
-      "description": "As a ..., I want ... so that ...",
-      "acceptanceCriteria": ["..."],
-      "priority": 1,
-      "passes": false,
-      "notes": ""
-    }
-  ]
-}
-
-Rules:
-- Each user story from the PRD becomes one entry in userStories
-- Priority should order stories by dependency (build foundations first)
-- acceptanceCriteria must include "Typecheck passes" for code changes
-- Get the repo name and issue URL from: gh issue view ${issueNumber} --json url
-- The branchName should use a short kebab-case slug derived from the issue title
-
-IMPORTANT: You MUST write the tasks.json to the file path above. Do not just output it.`;
+  const template = await loadPrompt('plan');
+  const prompt = applyPlaceholders(template, {
+    __ISSUE_NUMBER__: issueNumber,
+    __PRD_CONTENT__: prdContent,
+    __TASKS_PATH__: tasksPath,
+  });
 
   await mkdir(issueDir, { recursive: true });
 

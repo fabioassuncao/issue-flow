@@ -1,13 +1,13 @@
 import { existsSync } from 'node:fs';
 import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { RalphConfig, ResolvedPaths, TaskPlan } from '../types.js';
+import type { EngineConfig, ResolvedPaths, TaskPlan } from '../types.js';
 import { printError, printInfo, printRetry, printSuccess, printWarning } from '../ui/logger.js';
 import { printIterationHeader } from '../ui/progress.js';
 import { printStartupHeader, printSummaryBox } from '../ui/summary.js';
 import { isTransientFailure, retryDelaySeconds } from '../utils/retry.js';
 import { executeClaude } from './executor.js';
-import { applyPlaceholders, cleanupPromptTmp, resolvePrompt } from './prompt-resolver.js';
+import { applyPlaceholders, loadPrompt } from './prompt-resolver.js';
 import {
   allStoriesPass,
   clearLastError,
@@ -59,7 +59,7 @@ async function archiveIfBranchChanged(plan: TaskPlan, paths: ResolvedPaths): Pro
 
   if (currentBranch && lastBranch && currentBranch !== lastBranch) {
     const dateStr = new Date().toISOString().split('T')[0];
-    const folderName = lastBranch.replace(/^ralph\//, '');
+    const folderName = lastBranch.replace(/^issue\//, '');
     const archiveFolder = join(archiveDir, `${dateStr}-${folderName}`);
 
     printInfo(`Archiving previous run: ${lastBranch}`);
@@ -104,7 +104,7 @@ async function trackBranch(plan: TaskPlan, lastBranchFile: string): Promise<void
  * 5. Main loop: iterate, execute Claude, handle results
  * 6. Print summary
  */
-export async function runEngine(config: RalphConfig, paths: ResolvedPaths): Promise<number> {
+export async function runEngine(config: EngineConfig, paths: ResolvedPaths): Promise<number> {
   // Load task plan
   if (!existsSync(paths.prdFile)) {
     printError(`PRD file not found at ${paths.prdFile}`);
@@ -155,155 +155,147 @@ export async function runEngine(config: RalphConfig, paths: ResolvedPaths): Prom
   // Initialize progress file
   await ensureProgressFile(paths.progressFile);
 
-  // Resolve prompt
-  const promptResult = await resolvePrompt({
-    projectRoot: paths.projectRoot,
-  });
-  const promptTmpDir = promptResult.tmpDir;
+  // Load prompt template
+  const promptTemplate = await loadPrompt('execute');
 
-  try {
-    // Print startup header
-    printStartupHeader(config, plan);
+  // Print startup header
+  printStartupHeader(config, plan);
 
-    const startTime = Date.now();
-    let i = 0;
-    let retryCount = 0;
-    let totalRetryCount = 0;
+  const startTime = Date.now();
+  let i = 0;
+  let retryCount = 0;
+  let totalRetryCount = 0;
 
-    // Main loop
-    while (true) {
-      // Check iteration limit
-      if (config.maxIterations !== undefined && i >= config.maxIterations) {
-        break;
-      }
+  // Main loop
+  while (true) {
+    // Check iteration limit
+    if (config.maxIterations !== undefined && i >= config.maxIterations) {
+      break;
+    }
 
-      i++;
+    i++;
 
-      // Re-read plan to get latest state
-      plan = await loadTaskPlan(paths.prdFile);
+    // Re-read plan to get latest state
+    plan = await loadTaskPlan(paths.prdFile);
 
-      printIterationHeader(i, config.maxIterations, plan.userStories);
+    printIterationHeader(i, config.maxIterations, plan.userStories);
 
-      // Apply placeholders to prompt
-      const prompt = applyPlaceholders(promptResult.content, {
-        __PRD_FILE__: paths.prdFile,
-        __PROGRESS_FILE__: paths.progressFile,
-      });
+    // Apply placeholders to prompt
+    const prompt = applyPlaceholders(promptTemplate, {
+      __PRD_FILE__: paths.prdFile,
+      __PROGRESS_FILE__: paths.progressFile,
+    });
 
-      const iterationStartedAt = isoNow();
-      plan = markIssueInProgress(plan, iterationStartedAt);
-      await saveTaskPlan(paths.prdFile, plan);
+    const iterationStartedAt = isoNow();
+    plan = markIssueInProgress(plan, iterationStartedAt);
+    await saveTaskPlan(paths.prdFile, plan);
 
-      // Execute Claude
-      const result = await executeClaude(prompt);
+    // Execute Claude
+    const result = await executeClaude(prompt);
 
-      if (result.exitCode !== 0) {
-        const errorMessage = trimErrorMessage(result.output);
+    if (result.exitCode !== 0) {
+      const errorMessage = trimErrorMessage(result.output);
 
-        if (isTransientFailure(result.exitCode, result.output)) {
-          retryCount++;
-          totalRetryCount++;
+      if (isTransientFailure(result.exitCode, result.output)) {
+        retryCount++;
+        totalRetryCount++;
+        plan = await loadTaskPlan(paths.prdFile);
+        plan = setLastError(plan, 'transient_claude_failure', errorMessage);
+        await saveTaskPlan(paths.prdFile, plan);
+
+        if (!config.retryForever && retryCount > config.retryLimit) {
+          const elapsed = Math.floor((Date.now() - startTime) / 1000);
           plan = await loadTaskPlan(paths.prdFile);
-          plan = setLastError(plan, 'transient_claude_failure', errorMessage);
-          await saveTaskPlan(paths.prdFile, plan);
-
-          if (!config.retryForever && retryCount > config.retryLimit) {
-            const elapsed = Math.floor((Date.now() - startTime) / 1000);
-            plan = await loadTaskPlan(paths.prdFile);
-            printSummaryBox(
-              'failed',
-              i,
-              totalRetryCount,
-              elapsed,
-              plan,
-              `Exceeded retry limit (${config.retryLimit}) on transient errors`,
-            );
-            return result.exitCode;
-          }
-
-          const delaySeconds = retryDelaySeconds(
-            retryCount,
-            config.backoffBaseSeconds,
-            config.backoffMaxSeconds,
+          printSummaryBox(
+            'failed',
+            i,
+            totalRetryCount,
+            elapsed,
+            plan,
+            `Exceeded retry limit (${config.retryLimit}) on transient errors`,
           );
-
-          console.log('');
-          printRetry(
-            `Transient Claude failure on iteration ${i} (attempt ${retryCount}). Retrying in ${delaySeconds}s.`,
-          );
-
-          // Stay within current iteration budget
-          i--;
-          await sleep(delaySeconds);
-          continue;
+          return result.exitCode;
         }
 
-        // Fatal failure
-        plan = await loadTaskPlan(paths.prdFile);
-        plan = setLastError(plan, 'fatal_claude_failure', errorMessage);
+        const delaySeconds = retryDelaySeconds(
+          retryCount,
+          config.backoffBaseSeconds,
+          config.backoffMaxSeconds,
+        );
+
+        console.log('');
+        printRetry(
+          `Transient Claude failure on iteration ${i} (attempt ${retryCount}). Retrying in ${delaySeconds}s.`,
+        );
+
+        // Stay within current iteration budget
+        i--;
+        await sleep(delaySeconds);
+        continue;
+      }
+
+      // Fatal failure
+      plan = await loadTaskPlan(paths.prdFile);
+      plan = setLastError(plan, 'fatal_claude_failure', errorMessage);
+      await saveTaskPlan(paths.prdFile, plan);
+
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      printSummaryBox(
+        'failed',
+        i,
+        totalRetryCount,
+        elapsed,
+        plan,
+        `Claude CLI failed with exit code ${result.exitCode}`,
+      );
+      return result.exitCode;
+    }
+
+    // Success — reset retry counter
+    retryCount = 0;
+    plan = await loadTaskPlan(paths.prdFile);
+    plan = clearLastError(plan, iterationStartedAt);
+    await saveTaskPlan(paths.prdFile, plan);
+
+    // Check for completion signal
+    if (result.output.includes('<promise>COMPLETE</promise>')) {
+      plan = await loadTaskPlan(paths.prdFile);
+      if (allStoriesPass(plan)) {
+        plan = markIssueCompleted(plan);
         await saveTaskPlan(paths.prdFile, plan);
 
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        printSummaryBox(
-          'failed',
-          i,
-          totalRetryCount,
-          elapsed,
-          plan,
-          `Claude CLI failed with exit code ${result.exitCode}`,
-        );
-        return result.exitCode;
+        printSummaryBox('success', i, totalRetryCount, elapsed, plan);
+        return 0;
       }
 
-      // Success — reset retry counter
-      retryCount = 0;
-      plan = await loadTaskPlan(paths.prdFile);
-      plan = clearLastError(plan, iterationStartedAt);
+      plan = setLastError(
+        plan,
+        'invalid_completion_signal',
+        'Claude returned <promise>COMPLETE</promise> before every story had passes=true.',
+      );
       await saveTaskPlan(paths.prdFile, plan);
 
-      // Check for completion signal
-      if (result.output.includes('<promise>COMPLETE</promise>')) {
-        plan = await loadTaskPlan(paths.prdFile);
-        if (allStoriesPass(plan)) {
-          plan = markIssueCompleted(plan);
-          await saveTaskPlan(paths.prdFile, plan);
-
-          const elapsed = Math.floor((Date.now() - startTime) / 1000);
-          printSummaryBox('success', i, totalRetryCount, elapsed, plan);
-          return 0;
-        }
-
-        plan = setLastError(
-          plan,
-          'invalid_completion_signal',
-          'Claude returned <promise>COMPLETE</promise> before every story had passes=true.',
-        );
-        await saveTaskPlan(paths.prdFile, plan);
-
-        console.log('');
-        printWarning(
-          'Claude returned a completion signal, but tasks.json still has pending stories. Ignoring completion and continuing.',
-        );
-      }
-
-      printSuccess(`Iteration ${i} complete. Continuing...`);
-      await sleep(2);
+      console.log('');
+      printWarning(
+        'Claude returned a completion signal, but tasks.json still has pending stories. Ignoring completion and continuing.',
+      );
     }
 
-    // Reached max iterations
-    const elapsed = Math.floor((Date.now() - startTime) / 1000);
-    plan = await loadTaskPlan(paths.prdFile);
-    printSummaryBox(
-      'incomplete',
-      config.maxIterations ?? i,
-      totalRetryCount,
-      elapsed,
-      plan,
-      'Reached max iterations without completing all tasks.',
-    );
-    return 1;
-  } finally {
-    // Clean up temp prompt file
-    await cleanupPromptTmp(promptTmpDir);
+    printSuccess(`Iteration ${i} complete. Continuing...`);
+    await sleep(2);
   }
+
+  // Reached max iterations
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+  plan = await loadTaskPlan(paths.prdFile);
+  printSummaryBox(
+    'incomplete',
+    config.maxIterations ?? i,
+    totalRetryCount,
+    elapsed,
+    plan,
+    'Reached max iterations without completing all tasks.',
+  );
+  return 1;
 }

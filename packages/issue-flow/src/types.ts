@@ -1,5 +1,5 @@
 /**
- * Shared TypeScript interfaces for the Ralph Agent CLI.
+ * Shared TypeScript interfaces for the Issue Flow CLI.
  * These types mirror the tasks.json schema used by the issue-flow pipeline.
  */
 
@@ -44,7 +44,7 @@ export interface TaskPlan {
   userStories: UserStory[];
 }
 
-export interface RalphConfig {
+export interface EngineConfig {
   issueNumber: string | undefined;
   maxIterations: number | undefined;
   retryLimit: number;

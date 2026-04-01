@@ -1,80 +1,51 @@
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const REMOTE_URL =
-  'https://raw.githubusercontent.com/fabioassuncao/issue-flow/main/scripts/ralph/prompt.md';
+/**
+ * Resolve the absolute path to the package's prompts/ directory.
+ * Works from both source (src/core/) and compiled (dist/) locations
+ * by walking up the directory tree until the prompts/ folder is found.
+ */
+function getPromptsDir(): string {
+  const currentFile = fileURLToPath(import.meta.url);
+  let dir = dirname(currentFile);
 
-export interface PromptResolverOptions {
-  /** Directory where the script lives (may contain prompt.md) */
-  scriptDir?: string;
-  /** Project root directory */
-  projectRoot: string;
-}
+  for (let i = 0; i < 5; i++) {
+    const candidate = join(dir, 'prompts');
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+    dir = dirname(dir);
+  }
 
-interface ResolvedPrompt {
-  content: string;
-  source: 'local' | 'remote';
-  /** Temporary directory to clean up (only for remote downloads) */
-  tmpDir?: string;
+  throw new Error(
+    'Could not locate the prompts/ directory. Ensure the package is installed correctly.',
+  );
 }
 
 /**
- * Resolve prompt.md from a local path or by downloading from remote.
+ * Load a prompt template by name from the package's prompts/ directory.
  *
- * Resolution order:
- * 1. scriptDir/prompt.md (if scriptDir is provided)
- * 2. projectRoot/scripts/ralph/prompt.md
- * 3. Download from GitHub
+ * @param name - Prompt name without extension (e.g., 'execute', 'analyze')
+ * @returns The raw template content with placeholders intact
  */
-export async function resolvePrompt(options: PromptResolverOptions): Promise<ResolvedPrompt> {
-  // Try local paths first
-  const localPaths = [
-    options.scriptDir ? join(options.scriptDir, 'prompt.md') : null,
-    join(options.projectRoot, 'scripts', 'ralph', 'prompt.md'),
-  ].filter((p): p is string => p !== null);
-
-  for (const localPath of localPaths) {
-    if (existsSync(localPath)) {
-      const content = await readFile(localPath, 'utf-8');
-      return { content, source: 'local' };
-    }
-  }
-
-  // Download from remote
-  const tmpDir = join(tmpdir(), `issue-flow-prompt-${Date.now()}`);
-  await mkdir(tmpDir, { recursive: true });
-  const tmpFile = join(tmpDir, 'prompt.md');
+export async function loadPrompt(name: string): Promise<string> {
+  const promptsDir = getPromptsDir();
+  const filePath = join(promptsDir, `${name}.md`);
 
   try {
-    const response = await fetch(REMOTE_URL);
-
-    if (!response.ok) {
-      throw new Error(
-        `Failed to download prompt.md: HTTP ${response.status} ${response.statusText}`,
-      );
-    }
-
-    const content = await response.text();
-
-    if (!content || content.trim().length === 0) {
-      throw new Error('Downloaded prompt.md is empty');
-    }
-
-    await writeFile(tmpFile, content, 'utf-8');
-    return { content, source: 'remote', tmpDir };
-  } catch (error) {
-    // Clean up temp dir on failure
-    await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
-    throw new Error(
-      `prompt.md not found locally and remote download failed: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    return await readFile(filePath, 'utf-8');
+  } catch {
+    throw new Error(`Prompt template not found: ${filePath}`);
   }
 }
 
 /**
- * Replace placeholders in the prompt template with actual file paths.
+ * Replace placeholders in a prompt template with actual values.
+ *
+ * Placeholders use the format __KEY__ (e.g., __ISSUE_NUMBER__, __PRD_FILE__).
  */
 export function applyPlaceholders(template: string, vars: Record<string, string>): string {
   let result = template;
@@ -82,13 +53,4 @@ export function applyPlaceholders(template: string, vars: Record<string, string>
     result = result.replaceAll(key, value);
   }
   return result;
-}
-
-/**
- * Clean up temporary files created by the prompt resolver.
- */
-export async function cleanupPromptTmp(tmpDir?: string): Promise<void> {
-  if (tmpDir) {
-    await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
-  }
 }
