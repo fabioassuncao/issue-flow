@@ -211,18 +211,22 @@ export async function runPipeline(
     printWarning('Failed to close issue automatically');
   }
 
-  // Get PR URL for summary
+  // Get PR URL for summary (skip in --no-branch mode)
   let prUrl = 'unknown';
-  try {
-    const proc = await execa('gh', ['pr', 'list', '--head', '', '--json', 'url', '--limit', '1'], {
-      reject: false,
-    });
-    const parsed = JSON.parse(proc.stdout?.toString() ?? '[]');
-    if (parsed[0]?.url) {
-      prUrl = parsed[0].url;
+  if (!effectiveNoBranch) {
+    try {
+      const proc = await execa(
+        'gh',
+        ['pr', 'list', '--head', '', '--json', 'url', '--limit', '1'],
+        { reject: false },
+      );
+      const parsed = JSON.parse(proc.stdout?.toString() ?? '[]');
+      if (parsed[0]?.url) {
+        prUrl = parsed[0].url;
+      }
+    } catch {
+      /* non-critical */
     }
-  } catch {
-    /* non-critical */
   }
 
   // Get branch and story count
@@ -252,10 +256,12 @@ export async function runPipeline(
 
   console.log('');
   printSuccess(`Pipeline complete for issue #${issueNumber}!`);
-  console.log(`  Branch:   ${branchName}`);
+  console.log(`  Branch:   ${branchName}${effectiveNoBranch ? ' (current)' : ''}`);
   console.log(`  Stories:  ${storyCount}`);
   console.log(`  Duration: ${totalDuration}`);
-  console.log(`  PR:       ${prUrl}`);
+  if (!effectiveNoBranch) {
+    console.log(`  PR:       ${prUrl}`);
+  }
 
   return 0;
 }
