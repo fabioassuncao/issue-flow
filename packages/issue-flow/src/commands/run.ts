@@ -10,7 +10,6 @@ import { isoNow, loadTaskPlan, saveTaskPlan } from '../core/state-manager.js';
 import { isVerbose } from '../core/verbose.js';
 import { formatDuration, printError, printInfo, printSuccess, printWarning } from '../ui/logger.js';
 import { runPipelineWithRenderer } from '../ui/pipeline-renderer.js';
-import { runAnalyze } from './analyze.js';
 import { runExecute } from './execute.js';
 import { runInit } from './init.js';
 import { runPlan } from './plan.js';
@@ -19,8 +18,8 @@ import { runPrd } from './prd.js';
 import { runReview } from './review.js';
 
 /** Runnable phase lists (excluding 'init' which is handled separately). */
-const RUNNABLE_PHASES: PipelinePhase[] = ['analyze', 'prd', 'plan', 'execute', 'review', 'pr'];
-const RUNNABLE_PHASES_NO_BRANCH: PipelinePhase[] = ['analyze', 'prd', 'plan', 'execute', 'review'];
+const RUNNABLE_PHASES: PipelinePhase[] = ['prd', 'plan', 'execute', 'review', 'pr'];
+const RUNNABLE_PHASES_NO_BRANCH: PipelinePhase[] = ['prd', 'plan', 'execute', 'review'];
 
 export async function runPipeline(
   issue: string,
@@ -71,7 +70,7 @@ export async function runPipeline(
   const phaseOrder = effectiveNoBranch ? RUNNABLE_PHASES_NO_BRANCH : RUNNABLE_PHASES;
 
   // Determine starting phase
-  let startPhase: PipelinePhase = 'analyze';
+  let startPhase: PipelinePhase = 'prd';
   if (from) {
     if (!(activePhases as readonly string[]).includes(from)) {
       const validPhases = activePhases.filter((p) => p !== 'init').join(', ');
@@ -111,7 +110,7 @@ export async function runPipeline(
         return 1;
       }
     } catch {
-      if (startPhase !== 'analyze') {
+      if (startPhase !== 'prd') {
         printError(`Cannot resume from ${startPhase}: no pipeline state found`);
         return 1;
       }
@@ -129,7 +128,6 @@ export async function runPipeline(
   };
 
   const runners: Record<string, () => Promise<void>> = {
-    analyze: makeRunner(() => runAnalyze(issueNumber), 'analyze'),
     prd: makeRunner(() => runPrd(issueNumber), 'prd'),
     plan: async () => {
       await makeRunner(() => runPlan(issueNumber), 'plan')();

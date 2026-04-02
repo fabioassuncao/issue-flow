@@ -15,7 +15,7 @@ export const userStorySchema = z.object({
 });
 
 export const pipelineStateSchema = z.object({
-  analyzeCompleted: z.boolean(),
+  analyzeCompleted: z.boolean().optional(),
   prdCompleted: z.boolean(),
   jsonCompleted: z.boolean(),
   executionCompleted: z.boolean(),

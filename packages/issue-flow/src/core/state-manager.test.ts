@@ -30,7 +30,6 @@ function createMinimalPlan(overrides?: Partial<TaskPlan>): TaskPlan {
     correctionCycle: 0,
     maxCorrectionCycles: 3,
     pipeline: {
-      analyzeCompleted: false,
       prdCompleted: false,
       jsonCompleted: false,
       executionCompleted: false,
@@ -132,7 +131,7 @@ describe('state-manager', () => {
       expect(initialized.lastError).toBeNull();
       expect(initialized.correctionCycle).toBe(0);
       expect(initialized.maxCorrectionCycles).toBe(3);
-      expect(initialized.pipeline.analyzeCompleted).toBe(false);
+      expect(initialized.pipeline.prdCompleted).toBe(false);
     });
 
     it('should preserve existing values', () => {

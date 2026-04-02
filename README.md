@@ -1,6 +1,6 @@
 # Issue Flow
 
-A CLI that turns GitHub issues into pull requests autonomously. Orchestrates the full pipeline -- analyze, plan, implement, review, and deliver -- via [Claude Code](https://docs.anthropic.com/en/docs/claude-code) Headless mode.
+A CLI that turns GitHub issues into pull requests autonomously. Orchestrates the full pipeline -- plan, implement, review, and deliver -- via [Claude Code](https://docs.anthropic.com/en/docs/claude-code) Headless mode.
 
 ## Quick Start
 
@@ -37,20 +37,19 @@ issue-flow run 42
 ```mermaid
 flowchart LR
     subgraph "issue-flow run 42"
-        A["init"] --> B["analyze"]
-        B --> C["prd"]
-        C --> D["plan"]
-        D --> E["execute"]
-        E --> F["review"]
-        F --> G{PASS?}
-        G -- Yes --> H["pr"]
-        G -- No --> I{"Retries\n< max?"}
-        I -- Yes --> E
-        I -- No --> J["Stop"]
+        A["init"] --> B["prd"]
+        B --> C["plan"]
+        C --> D["execute"]
+        D --> E["review"]
+        E --> F{PASS?}
+        F -- Yes --> G["pr"]
+        F -- No --> H{"Retries\n< max?"}
+        H -- Yes --> D
+        H -- No --> I["Stop"]
     end
 ```
 
-Each phase can also be run independently: `issue-flow analyze 42`, `issue-flow prd 42`, etc. The `generate` command creates issues separately: `issue-flow generate --prompt '...'`.
+Each phase can also be run independently: `issue-flow prd 42`, `issue-flow plan 42`, etc. The `analyze` command is available standalone for deeper issue analysis when needed. The `generate` command creates issues separately: `issue-flow generate --prompt '...'`.
 
 ## Commands
 
@@ -67,7 +66,7 @@ npx issue-flow run 42 --from execute
 npx issue-flow run 42 --no-branch
 ```
 
-Executes all phases in order: **init** -> **analyze** -> **prd** -> **plan** -> **execute** -> **review** -> **pr**. Automatically resumes from the last incomplete phase if pipeline state exists. On review failure, runs correction cycles (re-execute + re-review) up to `maxCorrectionCycles`.
+Executes all phases in order: **init** -> **prd** -> **plan** -> **execute** -> **review** -> **pr**. Automatically resumes from the last incomplete phase if pipeline state exists. On review failure, runs correction cycles (re-execute + re-review) up to `maxCorrectionCycles`.
 
 | Flag | Description |
 |------|-------------|
@@ -92,13 +91,13 @@ npx issue-flow generate --prompt "Add dark mode support to the settings page"
 
 Analyzes the project and creates a detailed GitHub issue via Claude headless.
 
-### `analyze` -- Analyze an issue
+### `analyze` -- Analyze an issue (standalone)
 
 ```bash
 npx issue-flow analyze 42
 ```
 
-Fetches issue data, analyzes the codebase, and produces a structured analysis saved to `issues/42/analysis.md`.
+Fetches issue data, analyzes the codebase, and produces a structured analysis saved to `issues/42/analysis.md`. This is a standalone command not part of the default `run` pipeline -- use it when you need a deeper pre-analysis before generating the PRD.
 
 ### `prd` -- Generate a PRD
 
@@ -155,10 +154,10 @@ Each issue's state is tracked in `issues/N/tasks.json`:
 
 ```
 issues/42/
-  analysis.md    # Issue analysis
   prd.md         # Product requirements
   tasks.json     # Task plan with pipeline state and user stories
   progress.txt   # Execution log
+  analysis.md    # Issue analysis (optional, from standalone analyze command)
 ```
 
 The `pipeline` field tracks which phases have completed, enabling resume from any point:
@@ -166,7 +165,6 @@ The `pipeline` field tracks which phases have completed, enabling resume from an
 ```json
 {
   "pipeline": {
-    "analyzeCompleted": true,
     "prdCompleted": true,
     "jsonCompleted": true,
     "executionCompleted": false,

@@ -40,7 +40,6 @@ export interface PipelineRendererOptions {
  * Phase labels for display.
  */
 const PHASE_LABELS: Record<string, string> = {
-  analyze: 'Analyze',
   prd: 'PRD',
   plan: 'Plan',
   execute: 'Execute',

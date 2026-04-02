@@ -6,7 +6,6 @@ import { loadTaskPlan, saveTaskPlan } from './state-manager.js';
  */
 export const PIPELINE_PHASES = [
   'init',
-  'analyze',
   'prd',
   'plan',
   'execute',
@@ -29,7 +28,6 @@ export const PIPELINE_PHASES_NO_BRANCH = PIPELINE_PHASES.filter(
  */
 const PHASE_TO_FIELD: Record<PipelinePhase, keyof PipelineState | null> = {
   init: null,
-  analyze: 'analyzeCompleted',
   prd: 'prdCompleted',
   plan: 'jsonCompleted',
   execute: 'executionCompleted',
@@ -112,7 +110,6 @@ export class PipelineManager {
       ...this.plan,
       pipeline: {
         ...(this.plan.pipeline ?? {
-          analyzeCompleted: false,
           prdCompleted: false,
           jsonCompleted: false,
           executionCompleted: false,

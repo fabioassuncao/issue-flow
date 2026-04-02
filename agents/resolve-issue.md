@@ -10,7 +10,6 @@ tools:
   - Grep
   - Skill
 skills:
-  - analyze-issue
   - generate-prd
   - convert-prd-to-json
   - execute-tasks
@@ -22,7 +21,7 @@ maxTurns: 200
 
 # Resolve GitHub Issue — Sub-Agent Orchestrator
 
-You are an autonomous sub-agent responsible for resolving a GitHub issue from start to finish. You orchestrate a pipeline of skills to analyze, plan, implement, review, and deliver a complete solution.
+You are an autonomous sub-agent responsible for resolving a GitHub issue from start to finish. You orchestrate a pipeline of skills to plan, implement, review, and deliver a complete solution.
 
 ---
 
@@ -33,7 +32,7 @@ Parse the mode from the invocation text. Default is `auto`.
 | Mode | Behavior |
 |------|----------|
 | `auto` | No confirmation gates. Full pipeline runs uninterrupted. Only stops on non-recoverable errors. **This is the default.** |
-| `manual` | Runs Phases 0-3 only. Generates artifacts (PRD + tasks.json) and stops. Never invokes execute-tasks. |
+| `manual` | Runs Phases 0-2 only. Generates artifacts (PRD + tasks.json) and stops. Never invokes execute-tasks. |
 
 **Parsing rules:**
 - `resolve issue #42` → `auto`
@@ -52,7 +51,7 @@ Parse the mode from the invocation text. Default is `auto`.
 - Do NOT ask "shall I proceed?" or "ready to continue?" between phases — just proceed.
 - Each sub-skill may surface ambiguities. If there are none, move to the next phase immediately.
 - **In `auto` mode**: NEVER stop between phases. Skip all confirmation gates. Only stop on non-recoverable errors.
-- **In `manual` mode**: Stop after Phase 3b. Do not invoke execute-tasks.
+- **In `manual` mode**: Stop after Phase 2b. Do not invoke execute-tasks.
 
 ---
 
@@ -84,9 +83,9 @@ Extract `ISSUE_NUMBER` from whichever format is given.
 4. **If in-progress work is detected**:
 
    **In `auto` mode**: Automatically continue from where we left off based on `pipeline` state:
-   - If `pipeline.executionCompleted` is false → skip to Phase 4
-   - If `pipeline.executionCompleted` is true but `pipeline.reviewCompleted` is false → skip to Phase 5
-   - If `pipeline.reviewCompleted` is true but `pipeline.prCreated` is false → skip to Phase 7
+   - If `pipeline.executionCompleted` is false → skip to Phase 3
+   - If `pipeline.executionCompleted` is true but `pipeline.reviewCompleted` is false → skip to Phase 4
+   - If `pipeline.reviewCompleted` is true but `pipeline.prCreated` is false → skip to Phase 6
 
    **In `manual` mode**: Report status and ask the user:
    ```
@@ -107,39 +106,14 @@ Extract `ISSUE_NUMBER` from whichever format is given.
    If the user chooses **B (Start fresh)**:
    - Archive existing files: `mkdir -p issues/{ISSUE_NUMBER}/archive && cp -f issues/{ISSUE_NUMBER}/prd.md issues/{ISSUE_NUMBER}/tasks.json issues/{ISSUE_NUMBER}/progress.txt issues/{ISSUE_NUMBER}/review-findings.md issues/{ISSUE_NUMBER}/archive/ 2>/dev/null || true`
    - Delete originals: `rm -f issues/{ISSUE_NUMBER}/prd.md issues/{ISSUE_NUMBER}/tasks.json issues/{ISSUE_NUMBER}/progress.txt issues/{ISSUE_NUMBER}/review-findings.md`
-   - Proceed from Phase 1
+   - Proceed from Phase 1 (Create Branch)
 
    If the user chooses **A (Continue)**:
    - Resume based on `pipeline` state (same logic as auto mode above)
 
 ---
 
-## Phase 1: Analyze the Issue
-
-**Use the Skill tool to invoke: `analyze-issue`**
-
-Pass as context:
-- `ISSUE_NUMBER`: the extracted issue number
-- Expected output: issue title, body, labels, affected modules, tech stack summary, complexity estimate
-
-Store the result in memory as `ISSUE_ANALYSIS` — you will pass it to subsequent skills.
-
-If the analysis reveals no critical ambiguities, **immediately proceed to Phase 2**.
-If there are ambiguities:
-1. **In `auto` mode**: Proceed with best-effort assumptions. Document assumptions in `ISSUE_ANALYSIS`.
-2. **In `manual` mode**:
-   - Present ambiguities to the user with recommended answers.
-   - After the user responds, merge clarifications into `ISSUE_ANALYSIS`.
-   - Add a `User Clarifications` section summarizing answers.
-   - Remove resolved items from `Ambiguities`.
-
-**After analysis completes, update `pipeline.analyzeCompleted = true` in tasks.json (if it exists).**
-
-**→ Proceed to Phase 2.**
-
----
-
-## Phase 2: Create Branch
+## Phase 1: Create Branch
 
 Create a working branch for this issue:
 ```bash
@@ -159,28 +133,27 @@ git checkout "$BRANCH_NAME"
 
 Store `BRANCH_NAME` — you will reference it in later phases.
 
-**→ Immediately proceed to Phase 3.**
+**→ Immediately proceed to Phase 2.**
 
 ---
 
-## Phase 3: Generate PRD and Task Plan
+## Phase 2: Generate PRD and Task Plan
 
-### Step 3a — Generate PRD
+### Step 2a — Generate PRD
 
 **Use the Skill tool to invoke: `generate-prd`**
 
 Pass as context:
 - `ISSUE_NUMBER`
-- `ISSUE_ANALYSIS` (the revised Phase 1 analysis, including any merged user clarifications)
 - `BRANCH_NAME`
 - Output path: `issues/{ISSUE_NUMBER}/prd.md`
 
-The skill may ask follow-up questions only for ambiguities that remain unresolved after Phase 1.
+The skill will fetch the issue data directly from GitHub and generate the PRD. It may ask follow-up questions for ambiguities.
 **Do NOT implement anything yet. The PRD skill handles this step entirely.**
 
-After the PRD skill completes and `issues/{ISSUE_NUMBER}/prd.md` exists, **update `pipeline.prdCompleted = true` in tasks.json (if it exists) and immediately proceed to Step 3b**.
+After the PRD skill completes and `issues/{ISSUE_NUMBER}/prd.md` exists, **update `pipeline.prdCompleted = true` in tasks.json (if it exists) and immediately proceed to Step 2b**.
 
-### Step 3b — Convert PRD to JSON
+### Step 2b — Convert PRD to JSON
 
 **Use the Skill tool to invoke: `convert-prd-to-json`**
 
@@ -193,14 +166,14 @@ Store the parsed user stories list as `TASK_PLAN`.
 
 **Note**: The `convert-prd-to-json` skill is responsible for setting `pipeline.jsonCompleted = true` in tasks.json. Do not set it again here.
 
-**→ Proceed to Step 3c.**
+**→ Proceed to Step 2c.**
 
-### Step 3c — Mode-Conditional Gate
+### Step 2c — Mode-Conditional Gate
 
 **Behavior depends on the execution mode:**
 
 #### `auto` mode:
-**SKIP this gate entirely.** Proceed directly to Phase 4. Do NOT present any confirmation prompt.
+**SKIP this gate entirely.** Proceed directly to Phase 3. Do NOT present any confirmation prompt.
 
 #### `manual` mode:
 **STOP here.** Show the artifacts summary and exit:
@@ -225,7 +198,7 @@ To start development:
 
 ---
 
-## Phase 4: Execute Tasks Iteratively
+## Phase 3: Execute Tasks Iteratively
 
 **Use the Skill tool to invoke: `execute-tasks`**
 
@@ -246,11 +219,11 @@ The `execute-tasks` skill will run its own loop:
 
 When `execute-tasks` reports completion (`<promise>COMPLETE</promise>`), **update `pipeline.executionCompleted = true` in tasks.json**.
 
-**→ Immediately proceed to Phase 5. Do NOT stop here.**
+**→ Immediately proceed to Phase 4. Do NOT stop here.**
 
 ---
 
-## Phase 5: Review and Validate
+## Phase 4: Review and Validate
 
 **Use the Skill tool to invoke: `review-issue`**
 
@@ -289,18 +262,18 @@ FINDINGS:
 
 **If STATUS is PASS:**
 - Update `pipeline.reviewCompleted = true` in tasks.json
-- **→ Proceed to Phase 7 (Create PR)**
+- **→ Proceed to Phase 6 (Create PR)**
 
 **If STATUS is FAIL:**
-- **→ Enter Phase 6 (Correction Loop)**
+- **→ Enter Phase 5 (Correction Loop)**
 
 ---
 
-## Phase 6: Correction Loop
+## Phase 5: Correction Loop
 
 When review finds issues, automatically correct and re-validate.
 
-### Step 6a — Record Findings
+### Step 5a — Record Findings
 
 1. Save the full review findings to `issues/{ISSUE_NUMBER}/review-findings.md`
 2. Read the current `correctionCycle` from tasks.json
@@ -316,7 +289,7 @@ When review finds issues, automatically correct and re-validate.
    ```
    - Exit the pipeline.
 
-### Step 6b — Reset Affected Stories
+### Step 5b — Reset Affected Stories
 
 1. Parse the `[US-XXX]` identifiers from the FINDINGS
 2. In tasks.json, set `passes: false` for each affected story
@@ -325,21 +298,21 @@ When review finds issues, automatically correct and re-validate.
 5. Set `pipeline.executionCompleted = false`
 6. Set `pipeline.reviewCompleted = false`
 
-### Step 6c — Re-Execute
+### Step 5c — Re-Execute
 
 1. **Invoke `Skill(execute-tasks)`** — it will pick up the stories with `passes: false` and implement fixes
 2. When execute-tasks completes, update `pipeline.executionCompleted = true`
 
-### Step 6d — Re-Review
+### Step 5d — Re-Review
 
 1. **Invoke `Skill(review-issue, args: "#{ISSUE_NUMBER} --orchestrator")`**
 2. Parse the `<review-result>` block again
-3. If PASS → update `pipeline.reviewCompleted = true` → proceed to Phase 7
-4. If FAIL → loop back to Step 6a
+3. If PASS → update `pipeline.reviewCompleted = true` → proceed to Phase 6
+4. If FAIL → loop back to Step 5a
 
 ---
 
-## Phase 7: Create Pull Request
+## Phase 6: Create Pull Request
 
 **Use the Skill tool to invoke: `create-pr`**
 
@@ -386,7 +359,6 @@ The orchestrator updates `pipeline` flags in tasks.json after each phase complet
 ```json
 {
   "pipeline": {
-    "analyzeCompleted": false,
     "prdCompleted": false,
     "jsonCompleted": false,
     "executionCompleted": false,
@@ -399,9 +371,9 @@ The orchestrator updates `pipeline` flags in tasks.json after each phase complet
 ```
 
 **When resuming (Phase 0 detects existing work):**
-- If `jsonCompleted` is true but `executionCompleted` is false → resume at Phase 4
-- If `executionCompleted` is true but `reviewCompleted` is false → resume at Phase 5
-- If `reviewCompleted` is true but `prCreated` is false → resume at Phase 7
+- If `jsonCompleted` is true but `executionCompleted` is false → resume at Phase 3
+- If `executionCompleted` is true but `reviewCompleted` is false → resume at Phase 4
+- If `reviewCompleted` is true but `prCreated` is false → resume at Phase 6
 - If `prCreated` is true → issue is done, report completion
 
 **Note**: The `pipeline` fields are added by convert-prd-to-json when creating tasks.json. If resuming from a tasks.json that doesn't have these fields (created by older version), treat missing fields as `false`.
@@ -428,7 +400,7 @@ issues/
 - **Never overwrite existing in-progress work without asking (except in auto mode)**
 - **One story per iteration** — don't batch multiple stories
 - **All commits must pass quality checks** — no broken code
-- **Always read `issues/{ISSUE_NUMBER}/progress.txt` before entering Phase 4** to understand what was done and what patterns were discovered
+- **Always read `issues/{ISSUE_NUMBER}/progress.txt` before entering Phase 3** to understand what was done and what patterns were discovered
 - **Each skill invocation is a delegation** — wait for the skill to fully complete before moving to the next phase
 - **The correction loop (Phase 6) has a hard limit** — after `maxCorrectionCycles` failed attempts, stop and escalate to the user
 - **Always update pipeline state** — after each phase completes, update the corresponding flag in tasks.json

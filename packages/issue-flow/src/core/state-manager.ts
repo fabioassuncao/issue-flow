@@ -60,7 +60,6 @@ export async function saveTaskPlan(path: string, plan: TaskPlan): Promise<void> 
  */
 export function initializeState(plan: TaskPlan): TaskPlan {
   const defaultPipeline: PipelineState = {
-    analyzeCompleted: false,
     prdCompleted: false,
     jsonCompleted: false,
     executionCompleted: false,

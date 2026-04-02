@@ -13,20 +13,9 @@ export async function runPrd(issue: string): Promise<number> {
 
   await mkdir(issueDir, { recursive: true });
 
-  // Read analysis if it exists
-  let analysisContext = '';
-  const analysisPath = join(issueDir, 'analysis.md');
-  try {
-    const content = await readFile(analysisPath, 'utf-8');
-    analysisContext = `\n\nHere is the existing analysis for this issue:\n\n${content}`;
-  } catch {
-    // No analysis available — that's OK
-  }
-
   const template = await loadPrompt('prd');
   const prompt = applyPlaceholders(template, {
     __ISSUE_NUMBER__: issueNumber,
-    __ANALYSIS_CONTEXT__: analysisContext,
     __PRD_PATH__: prdPath,
   });
 

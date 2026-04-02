@@ -74,7 +74,7 @@ withGlobalOptions(
 withGlobalOptions(
   program
     .command('run')
-    .description('Execute the full pipeline: analyze → prd → plan → execute → review → pr')
+    .description('Execute the full pipeline: prd → plan → execute → review → pr')
     .argument('<issue>', 'Issue number')
     .option('--mode <mode>', 'Execution mode: auto | manual', 'auto')
     .option('--from <phase>', 'Resume from a specific phase')

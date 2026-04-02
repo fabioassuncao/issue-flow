@@ -32,7 +32,6 @@ Read `issues/{ISSUE_NUMBER}/prd.md` and convert it to `issues/{ISSUE_NUMBER}/tas
   "correctionCycle": 0,
   "maxCorrectionCycles": 3,
   "pipeline": {
-    "analyzeCompleted": false,
     "prdCompleted": false,
     "jsonCompleted": false,
     "executionCompleted": false,
@@ -183,7 +182,7 @@ Estimated complexity: Medium
 
 ## IMPORTANT: Return Control to Calling Skill
 
-After printing the summary, your work is done. Do NOT present any decision to the user. The calling skill (resolve-issue) has a mandatory user decision gate (Step 3c) that MUST run next.
+After printing the summary, your work is done. Do NOT present any decision to the user. The calling skill (resolve-issue) has a mandatory user decision gate (Step 2c) that MUST run next.
 
 Your final output line must be exactly:
 ⏭️ Returning to resolve-issue for user confirmation.

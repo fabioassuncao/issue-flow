@@ -20,7 +20,7 @@ export interface LastError {
 }
 
 export interface PipelineState {
-  analyzeCompleted: boolean;
+  analyzeCompleted?: boolean;
   prdCompleted: boolean;
   jsonCompleted: boolean;
   executionCompleted: boolean;

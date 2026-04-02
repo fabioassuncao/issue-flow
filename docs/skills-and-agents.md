@@ -34,7 +34,7 @@ Skills and sub-agents are invoked differently in Claude Code:
 |-----------|------|-------------|
 | [`resolve-issue`](../.claude/agents/resolve-issue.md) | **Sub-agent** | Orchestrates the full pipeline end-to-end with mode support and auto-correction loop. |
 | [`generate-issue`](../skills/generate-issue/) | Skill | Generates architect-quality GitHub issues from short instructions with duplicate detection and label management. |
-| [`analyze-issue`](../skills/analyze-issue/) | Skill | Analyzes a GitHub issue to extract context, scope, affected areas, and complexity. |
+| [`analyze-issue`](../skills/analyze-issue/) | Skill | Analyzes a GitHub issue to extract context, scope, affected areas, and complexity. Standalone use only -- not part of the default pipeline. |
 | [`generate-prd`](../skills/generate-prd/) | Skill | Generates a structured PRD with user stories, acceptance criteria, and functional requirements. |
 | [`convert-prd-to-json`](../skills/convert-prd-to-json/) | Skill | Converts a PRD markdown file into a structured JSON task plan for autonomous execution. |
 | [`execute-tasks`](../skills/execute-tasks/) | Skill | Iteratively implements user stories from a JSON task plan with quality checks and commits. |
@@ -76,8 +76,7 @@ flowchart TD
     D --> E{Existing work detected?}
     E -- Yes --> E1["Resume from pipeline state"]
     E1 --> F
-    E -- No --> F[analyze-issue]
-    F --> G[Create branch issue/N-slug]
+    E -- No --> G[Create branch issue/N-slug]
     G --> H[generate-prd<br/>issues/N/prd.md]
     H --> I[convert-prd-to-json<br/>issues/N/tasks.json]
     I --> J{"Mode gate"}
@@ -122,20 +121,19 @@ Output: a published GitHub issue that is ready to be planned and executed.
 
 **Planning phases (automatic):**
 1. Check for existing work and pipeline state in `issues/{N}/`
-2. Analyze the issue with `analyze-issue`
-3. Create the working branch `issue/{N}-{slug}`
-4. Generate PRD with `generate-prd` -> `issues/{N}/prd.md`
-5. Convert to task plan with `convert-prd-to-json` -> `issues/{N}/tasks.json`
+2. Create the working branch `issue/{N}-{slug}`
+3. Generate PRD with `generate-prd` -> `issues/{N}/prd.md`
+4. Convert to task plan with `convert-prd-to-json` -> `issues/{N}/tasks.json`
 
 **Mode-conditional gate:**
 - `auto`: skips confirmation, proceeds directly to execution
 - `manual`: stops here with artifacts saved
 
 **Execution phases (if proceeding):**
-6. Implement stories with `execute-tasks`
-7. Validate with `review-issue` (structured verdict)
-8. If FAIL: auto-correction loop (reset affected stories, re-execute, re-review -- up to 3 cycles)
-9. If PASS: create PR with `create-pr` and close the issue
+5. Implement stories with `execute-tasks`
+6. Validate with `review-issue` (structured verdict)
+7. If FAIL: auto-correction loop (reset affected stories, re-execute, re-review -- up to 3 cycles)
+8. If PASS: create PR with `create-pr` and close the issue
 </details>
 
 <details>
@@ -165,7 +163,6 @@ The `tasks.json` file tracks pipeline state:
 ```json
 {
   "pipeline": {
-    "analyzeCompleted": true,
     "prdCompleted": true,
     "jsonCompleted": true,
     "executionCompleted": false,
