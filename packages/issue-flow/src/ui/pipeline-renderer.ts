@@ -1,8 +1,15 @@
-import { Listr, PRESET_TIMER, PRESET_TIMESTAMP } from 'listr2';
+import { Listr, type ListrTask, PRESET_TIMER, PRESET_TIMESTAMP } from 'listr2';
 import type { PipelinePhase } from '../core/pipeline.js';
 import { loadTaskPlan } from '../core/state-manager.js';
 import { setOutputCallback, setStoryUpdateCallback } from '../core/verbose.js';
 import type { UserStory } from '../types.js';
+
+/** Minimal interface for the listr2 task wrapper properties we use. */
+interface TaskContext {
+  title: string;
+  output: string;
+  newListr(tasks: ListrTask[], options?: Record<string, unknown>): Listr;
+}
 
 /**
  * Result returned after the pipeline renderer finishes.
@@ -70,21 +77,22 @@ function selectRenderer(verbose: boolean): 'default' | 'verbose' | 'simple' {
  * the engine to complete them via the story update callback. The parent task
  * title is updated with aggregate progress (e.g., "Execute (3/5 stories passing)").
  */
-function buildExecutePhaseTask(
-  runner: () => Promise<void>,
-  tasksPath: string,
-  verbose: boolean,
-) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return async (_ctx: unknown, task: any) => {
+function buildExecutePhaseTask(runner: () => Promise<void>, tasksPath: string, verbose: boolean) {
+  return async (_ctx: unknown, task: TaskContext) => {
     let stories: UserStory[];
     try {
       const plan = await loadTaskPlan(tasksPath);
       stories = [...plan.userStories].sort((a, b) => a.priority - b.priority);
     } catch {
       // If we can't read the plan, fall back to running without subtasks
-      setOutputCallback((line: string) => { task.output = line; });
-      try { await runner(); } finally { setOutputCallback(undefined); }
+      setOutputCallback((line: string) => {
+        task.output = line;
+      });
+      try {
+        await runner();
+      } finally {
+        setOutputCallback(undefined);
+      }
       return;
     }
 
@@ -93,10 +101,7 @@ function buildExecutePhaseTask(
     task.title = `Execute (${initialPassed}/${totalStories} stories passing)`;
 
     // Create promise resolvers for pending stories
-    const resolvers = new Map<
-      string,
-      { resolve: () => void; reject: (err: Error) => void }
-    >();
+    const resolvers = new Map<string, { resolve: () => void; reject: (err: Error) => void }>();
 
     // Set up story update callback — engine calls this after each iteration
     setStoryUpdateCallback((updatedStories: UserStory[]) => {
@@ -129,9 +134,10 @@ function buildExecutePhaseTask(
     // Engine runner subtask — drives the execution loop
     const engineSubtask = {
       title: 'Running engine',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      task: async (_c: unknown, engineTask: any) => {
-        setOutputCallback((line: string) => { engineTask.output = line; });
+      task: async (_c: unknown, engineTask: TaskContext) => {
+        setOutputCallback((line: string) => {
+          engineTask.output = line;
+        });
         try {
           await runner();
         } finally {
@@ -192,9 +198,8 @@ export async function runPipelineWithRenderer(
       return {
         title: label,
         skip: index < startIndex ? 'skipped' : false,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         task: isExecutePhase
-          ? async (_ctx: unknown, task: any) => {
+          ? async (_ctx: unknown, task: TaskContext) => {
               currentPhase = phase;
               const runner = runners[phase];
               if (!runner) {
@@ -202,14 +207,16 @@ export async function runPipelineWithRenderer(
               }
               return buildExecutePhaseTask(runner, tasksPath, verbose)(_ctx, task);
             }
-          : async (_ctx: unknown, task: any) => {
+          : async (_ctx: unknown, task: TaskContext) => {
               currentPhase = phase;
               const runner = runners[phase];
               if (!runner) {
                 throw new Error(`No runner defined for phase: ${phase}`);
               }
               // Route all output through task.output so listr2 controls rendering
-              setOutputCallback((line: string) => { task.output = line; });
+              setOutputCallback((line: string) => {
+                task.output = line;
+              });
               try {
                 await runner();
               } finally {

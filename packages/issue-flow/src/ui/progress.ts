@@ -1,6 +1,6 @@
 import chalk from 'chalk';
-import type { UserStory } from '../types.js';
 import { getOutputCallback } from '../core/verbose.js';
+import type { UserStory } from '../types.js';
 import { getIcons, useColor, useUnicode } from './logger.js';
 
 /**
@@ -93,4 +93,3 @@ export function printIterationHeader(
     console.log('');
   }
 }
-

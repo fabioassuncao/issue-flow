@@ -73,7 +73,11 @@ function shortPath(filePath: string | undefined): string {
 /**
  * Print a formatted stream event line to stderr.
  */
-function printStreamEvent(line: string, state: { turnCount: number }, onOutput?: (line: string) => void): void {
+function printStreamEvent(
+  line: string,
+  state: { turnCount: number },
+  onOutput?: (line: string) => void,
+): void {
   let event: {
     type?: string;
     subtype?: string;
@@ -264,7 +268,14 @@ export async function runHeadless(options: HeadlessOptions): Promise<HeadlessRes
   if (isVerbose()) {
     // Use explicit onOutput, fall back to global output callback, or default to stderr
     const effectiveOnOutput = onOutput ?? getOutputCallback();
-    return runHeadlessVerbose(prompt, maxTurns, timeout, allowedTools, statusMessage, effectiveOnOutput);
+    return runHeadlessVerbose(
+      prompt,
+      maxTurns,
+      timeout,
+      allowedTools,
+      statusMessage,
+      effectiveOnOutput,
+    );
   }
 
   // Non-verbose: use spinner with elapsed timer

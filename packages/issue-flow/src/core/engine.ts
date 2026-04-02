@@ -8,7 +8,6 @@ import { printStartupHeader, printSummaryBox } from '../ui/summary.js';
 import { isTransientFailure, retryDelaySeconds } from '../utils/retry.js';
 import { executeClaude } from './executor.js';
 import { applyPlaceholders, loadPrompt } from './prompt-resolver.js';
-import { getOutputCallback, getStoryUpdateCallback } from './verbose.js';
 import {
   allStoriesPass,
   clearLastError,
@@ -21,6 +20,7 @@ import {
   setLastError,
   trimErrorMessage,
 } from './state-manager.js';
+import { getOutputCallback, getStoryUpdateCallback } from './verbose.js';
 
 /**
  * Sleep for a given number of seconds.
