@@ -2,8 +2,9 @@ import { join } from 'node:path';
 import { execa } from 'execa';
 import { PIPELINE_PHASES, PipelineManager, type PipelinePhase } from '../core/pipeline.js';
 import { isoNow, loadTaskPlan, saveTaskPlan } from '../core/state-manager.js';
+import { isVerbose } from '../core/verbose.js';
 import { formatDuration, printError, printInfo, printSuccess, printWarning } from '../ui/logger.js';
-import { PipelineTracker } from '../ui/progress.js';
+import { runPipelineWithRenderer } from '../ui/pipeline-renderer.js';
 import { runAnalyze } from './analyze.js';
 import { runExecute } from './execute.js';
 import { runInit } from './init.js';
@@ -70,94 +71,76 @@ export async function runPipeline(issue: string, mode: string, from?: string): P
   const phaseOrder: PipelinePhase[] = ['analyze', 'prd', 'plan', 'execute', 'review', 'pr'];
   const startIdx = phaseOrder.indexOf(startPhase);
 
-  // Pipeline progress tracker
-  const tracker = new PipelineTracker(
-    phaseOrder.map((p) => p),
-    startIdx,
-  );
-  tracker.startLiveUpdate();
+  // Build phase runner functions that throw on failure
+  const makeRunner = (fn: () => Promise<number>, phase: string) => async () => {
+    const code = await fn();
+    if (code !== 0) {
+      throw new Error(`Phase ${phase} failed with exit code ${code}`);
+    }
+  };
 
-  for (let i = startIdx; i < phaseOrder.length; i++) {
-    const phase = phaseOrder[i];
-    tracker.startPhase(phase);
+  const runners: Record<string, () => Promise<void>> = {
+    analyze: makeRunner(() => runAnalyze(issueNumber), 'analyze'),
+    prd: makeRunner(() => runPrd(issueNumber), 'prd'),
+    plan: makeRunner(() => runPlan(issueNumber), 'plan'),
+    execute: makeRunner(() => runExecute(undefined, { issue: issueNumber }), 'execute'),
+    review: async () => {
+      // Read maxCorrectionCycles
+      let maxCycles = 3;
+      try {
+        const plan = await loadTaskPlan(tasksPath);
+        maxCycles = plan.maxCorrectionCycles;
+      } catch {
+        /* use default */
+      }
 
-    let code: number;
-    switch (phase) {
-      case 'analyze':
-        code = await runAnalyze(issueNumber);
-        break;
-      case 'prd':
-        code = await runPrd(issueNumber);
-        break;
-      case 'plan':
-        code = await runPlan(issueNumber);
-        break;
-      case 'execute':
-        code = await runExecute(undefined, { issue: issueNumber });
-        break;
-      case 'review': {
-        // Read maxCorrectionCycles
-        let maxCycles = 3;
+      let code = await runReview(issueNumber);
+
+      // Auto-correction loop on failure
+      let cycle = 0;
+      while (code !== 0 && cycle < maxCycles) {
+        cycle++;
+        printWarning(`Review failed. Starting correction cycle ${cycle}/${maxCycles}...`);
+
+        // Update correction cycle in tasks.json
         try {
           const plan = await loadTaskPlan(tasksPath);
-          maxCycles = plan.maxCorrectionCycles;
+          plan.correctionCycle = cycle;
+          await saveTaskPlan(tasksPath, plan);
         } catch {
-          /* use default */
+          /* non-critical */
         }
 
+        // Re-execute
+        const execCode = await runExecute(undefined, { issue: issueNumber });
+        if (execCode !== 0) {
+          throw new Error('Correction execution failed');
+        }
+
+        // Re-review
         code = await runReview(issueNumber);
-
-        // Auto-correction loop on failure
-        let cycle = 0;
-        while (code !== 0 && cycle < maxCycles) {
-          cycle++;
-          printWarning(`Review failed. Starting correction cycle ${cycle}/${maxCycles}...`);
-
-          // Update correction cycle in tasks.json
-          try {
-            const plan = await loadTaskPlan(tasksPath);
-            plan.correctionCycle = cycle;
-            await saveTaskPlan(tasksPath, plan);
-          } catch {
-            /* non-critical */
-          }
-
-          // Re-execute
-          const execCode = await runExecute(undefined, { issue: issueNumber });
-          if (execCode !== 0) {
-            tracker.failPhase(phase);
-            printError('Correction execution failed');
-            return 1;
-          }
-
-          // Re-review
-          code = await runReview(issueNumber);
-        }
-
-        if (code !== 0) {
-          tracker.failPhase(phase);
-          printError(`Review failed after ${maxCycles} correction cycles`);
-          return 1;
-        }
-        break;
       }
-      case 'pr':
-        code = await runPr(issueNumber);
-        break;
-      default:
-        code = 1;
-    }
 
-    if (code !== 0) {
-      tracker.failPhase(phase);
-      printError(`Phase ${phase} failed with exit code ${code}`);
-      return 1;
-    }
+      if (code !== 0) {
+        throw new Error(`Review failed after ${maxCycles} correction cycles`);
+      }
+    },
+    pr: makeRunner(() => runPr(issueNumber), 'pr'),
+  };
 
-    tracker.completePhase(phase);
+  // Run pipeline with listr2 renderer — startup header printed above, summary below
+  const result = await runPipelineWithRenderer({
+    phases: phaseOrder,
+    startIndex: startIdx,
+    verbose: isVerbose(),
+    runners,
+    tasksPath,
+  });
+
+  if (!result.success) {
+    printError(`Phase ${result.failedPhase} failed`);
+    return 1;
   }
-
-  tracker.stopLiveUpdate();
 
   // Close the issue
   printInfo('Closing issue...');
@@ -204,7 +187,7 @@ export async function runPipeline(issue: string, mode: string, from?: string): P
     /* non-critical */
   }
 
-  const totalDuration = formatDuration(tracker.getOverallElapsed());
+  const totalDuration = formatDuration(result.overallElapsedSeconds);
 
   console.log('');
   printSuccess(`Pipeline complete for issue #${issueNumber}!`);

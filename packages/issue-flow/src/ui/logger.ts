@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import ora, { type Ora } from 'ora';
+import { getOutputCallback } from '../core/verbose.js';
 
 /**
  * Detect if unicode output is supported.
@@ -68,48 +69,61 @@ export function getTermWidth(): number {
   return process.stdout.columns ?? 80;
 }
 
+/**
+ * Emit a line of output. Routes through the global output callback when
+ * running inside a listr2 task context, otherwise falls back to console.log.
+ */
+function emit(line: string): void {
+  const cb = getOutputCallback();
+  if (cb) {
+    cb(line);
+  } else {
+    console.log(line);
+  }
+}
+
 export function printSuccess(message: string): void {
   const icons = getIcons();
   if (useColor()) {
-    console.log(chalk.green(`${icons.success} ${message}`));
+    emit(chalk.green(`${icons.success} ${message}`));
   } else {
-    console.log(`${icons.success} ${message}`);
+    emit(`${icons.success} ${message}`);
   }
 }
 
 export function printError(message: string): void {
   const icons = getIcons();
   if (useColor()) {
-    console.log(chalk.red(`${icons.fail} ${message}`));
+    emit(chalk.red(`${icons.fail} ${message}`));
   } else {
-    console.log(`${icons.fail} ${message}`);
+    emit(`${icons.fail} ${message}`);
   }
 }
 
 export function printWarning(message: string): void {
   const icons = getIcons();
   if (useColor()) {
-    console.log(chalk.yellow(`${icons.warn} ${message}`));
+    emit(chalk.yellow(`${icons.warn} ${message}`));
   } else {
-    console.log(`${icons.warn} ${message}`);
+    emit(`${icons.warn} ${message}`);
   }
 }
 
 export function printRetry(message: string): void {
   const icons = getIcons();
   if (useColor()) {
-    console.log(chalk.yellow(`${icons.retry} ${message}`));
+    emit(chalk.yellow(`${icons.retry} ${message}`));
   } else {
-    console.log(`${icons.retry} ${message}`);
+    emit(`${icons.retry} ${message}`);
   }
 }
 
 export function printInfo(message: string): void {
   const icons = getIcons();
   if (useColor()) {
-    console.log(chalk.blue(`${icons.start} ${message}`));
+    emit(chalk.blue(`${icons.start} ${message}`));
   } else {
-    console.log(`${icons.start} ${message}`);
+    emit(`${icons.start} ${message}`);
   }
 }
 
