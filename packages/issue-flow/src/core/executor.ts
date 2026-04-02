@@ -1,5 +1,6 @@
 import { execa } from 'execa';
 import type { ClaudeResult } from '../types.js';
+import { getOutputCallback } from './verbose.js';
 
 /**
  * Execute Claude CLI with a prompt piped to stdin.
@@ -21,6 +22,15 @@ export async function executeClaude(prompt: string): Promise<ClaudeResult> {
   const stdout = result.stdout?.toString() ?? '';
   const stderr = result.stderr?.toString() ?? '';
   const output = stdout + (stderr ? `\n${stderr}` : '');
+
+  // Forward output through the global callback (listr2 renderer) when active
+  const onOutput = getOutputCallback();
+  if (onOutput) {
+    const trimmed = output.trim();
+    if (trimmed) {
+      onOutput(trimmed);
+    }
+  }
 
   return {
     exitCode: result.exitCode ?? 1,
