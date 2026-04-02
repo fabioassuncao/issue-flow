@@ -4,14 +4,7 @@ import { loadTaskPlan, saveTaskPlan } from './state-manager.js';
 /**
  * Ordered pipeline phases. Each phase must complete before the next can start.
  */
-export const PIPELINE_PHASES = [
-  'init',
-  'prd',
-  'plan',
-  'execute',
-  'review',
-  'pr',
-] as const;
+export const PIPELINE_PHASES = ['init', 'prd', 'plan', 'execute', 'review', 'pr'] as const;
 
 export type PipelinePhase = (typeof PIPELINE_PHASES)[number];
 

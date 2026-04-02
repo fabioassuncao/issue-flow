@@ -71,10 +71,7 @@ describe('PipelineManager', () => {
     });
 
     it('handles old tasks.json with analyzeCompleted field', () => {
-      const mgr = new PipelineManager(
-        makePlan({ analyzeCompleted: true }),
-        '/tmp/tasks.json',
-      );
+      const mgr = new PipelineManager(makePlan({ analyzeCompleted: true }), '/tmp/tasks.json');
       // analyzeCompleted is ignored; pipeline starts from prd
       expect(mgr.getNextPhase()).toBe('prd');
     });
