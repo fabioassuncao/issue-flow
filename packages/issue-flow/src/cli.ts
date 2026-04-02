@@ -1,6 +1,10 @@
+import { createRequire } from 'node:module';
 import { Command, InvalidArgumentError } from 'commander';
 import { setGlobalTimeout, setVerbose } from './core/verbose.js';
 import { printError } from './ui/logger.js';
+
+const require = createRequire(import.meta.url);
+const { version } = require('../package.json') as { version: string };
 
 /**
  * Parse a numeric string, throwing InvalidArgumentError if not a valid number.
@@ -33,7 +37,7 @@ program
   .description(
     'Unified CLI for orchestrating the full issue-flow pipeline via Claude Code Headless.',
   )
-  .version('0.3.0');
+  .version(version);
 
 program.hook('preAction', (_thisCommand, actionCommand) => {
   const opts = actionCommand.opts();
