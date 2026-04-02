@@ -1,0 +1,42 @@
+## Codebase Patterns
+- `executor.ts` runs Claude CLI via `execa` and returns `ClaudeResult` — output routing is separate from execution
+- `verbose.ts` holds global callbacks (`getOutputCallback`, `setOutputCallback`) for routing output through listr2
+- Lint uses `biome check src/`; typecheck uses `npx tsc --noEmit` from the `packages/issue-flow` directory
+
+# Issue Flow Progress Log
+Started: Wed Apr 01 2026 21:55:59 GMT-0300 (Horário Padrão de Brasília)
+---
+
+## 2026-04-01T21:58:00-03:00 - US-001
+- Removed `process.stderr.write()` call from `executor.ts` (lines 25-28)
+- Updated JSDoc comment to reflect output is no longer forwarded to stderr
+- Files changed: `packages/issue-flow/src/core/executor.ts`
+- **Learnings for future iterations:**
+  - `executor.ts` is minimal — it only runs the Claude CLI and returns output. It does not import verbose.ts yet.
+  - The output callback from `verbose.ts` (`getOutputCallback`) is the correct channel for routing output through listr2
+  - US-002 will need to import `getOutputCallback` into executor.ts and call it with trimmed output
+---
+
+## 2026-04-01T22:10:00-03:00 - US-002
+- Imported `getOutputCallback` from `./verbose.js` into `executor.ts`
+- After combining stdout+stderr, forward trimmed output through the callback when set
+- When no callback is set, output is silently discarded (already returned via `ClaudeResult`)
+- Files changed: `packages/issue-flow/src/core/executor.ts`
+- **Learnings for future iterations:**
+  - The callback pattern is simple: call `getOutputCallback()`, check if defined, then invoke with trimmed output
+  - No need to guard against verbose mode separately — the callback is only set when listr2 is active, which handles verbose rendering internally
+  - US-003 should verify that the simple renderer (non-TTY) still fires the output callback — check how listr2 sets up the callback under `TERM=dumb`
+---
+
+## 2026-04-01T21:30:00-03:00 - US-003
+- Verified non-TTY / CI output remains readable — no code changes needed
+- Confirmed `setOutputCallback` is called in all phase paths in `pipeline-renderer.ts` (execute with subtasks, execute fallback, non-execute phases)
+- Confirmed no `process.stderr.write` remains in `executor.ts` (only in `headless.ts` as intentional fallback for standalone mode)
+- Simple renderer (`TERM=dumb` / CI) displays `task.output` as plain timestamped lines — legible and non-duplicated
+- Typecheck and lint pass
+- Files changed: `issues/17/tasks.json` (marked US-003 as passing, set issueStatus to completed)
+- **Learnings for future iterations:**
+  - The simple renderer in listr2 handles `task.output` identically to other renderers — no special non-TTY code path is needed
+  - `headless.ts` has its own stderr fallback pattern (`onOutput ?? stderr.write`) which is separate from `executor.ts` — don't confuse the two
+  - Verification stories may not require code changes — the key is confirming the existing implementation satisfies all acceptance criteria
+---

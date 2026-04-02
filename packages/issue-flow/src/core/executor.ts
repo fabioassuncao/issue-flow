@@ -1,5 +1,6 @@
 import { execa } from 'execa';
 import type { ClaudeResult } from '../types.js';
+import { getOutputCallback } from './verbose.js';
 
 /**
  * Execute Claude CLI with a prompt piped to stdin.
@@ -7,7 +8,7 @@ import type { ClaudeResult } from '../types.js';
  * Runs: echo $PROMPT | claude --dangerously-skip-permissions --print
  *
  * Captures combined stdout+stderr output. Does not throw on non-zero exit codes.
- * Output is also forwarded to the process stderr (matching Bash behavior).
+ * Output is returned via ClaudeResult and routed through the output callback infrastructure.
  */
 export async function executeClaude(prompt: string): Promise<ClaudeResult> {
   const result = await execa('claude', ['--dangerously-skip-permissions', '--print'], {
@@ -22,9 +23,13 @@ export async function executeClaude(prompt: string): Promise<ClaudeResult> {
   const stderr = result.stderr?.toString() ?? '';
   const output = stdout + (stderr ? `\n${stderr}` : '');
 
-  // Forward output to process stderr (matching Bash: printf '%s\n' "$OUTPUT" >&2)
-  if (output.trim()) {
-    process.stderr.write(`${output}\n`);
+  // Forward output through the global callback (listr2 renderer) when active
+  const onOutput = getOutputCallback();
+  if (onOutput) {
+    const trimmed = output.trim();
+    if (trimmed) {
+      onOutput(trimmed);
+    }
   }
 
   return {

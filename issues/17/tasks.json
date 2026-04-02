@@ -1,0 +1,65 @@
+{
+  "project": "issue-flow",
+  "issueNumber": 17,
+  "issueUrl": "https://github.com/fabioassuncao/issue-flow/issues/17",
+  "branchName": "issue/17-fix-duplicate-execute-output",
+  "description": "Fix duplicate terminal output in Execute phase by removing direct stderr writes and routing output through the existing callback infrastructure",
+  "issueStatus": "completed",
+  "completedAt": "2026-04-01T21:30:00Z",
+  "lastAttemptAt": "2026-04-01T21:30:00Z",
+  "lastError": null,
+  "correctionCycle": 0,
+  "maxCorrectionCycles": 3,
+  "pipeline": {
+    "analyzeCompleted": true,
+    "prdCompleted": true,
+    "jsonCompleted": true,
+    "executionCompleted": true,
+    "reviewCompleted": false,
+    "prCreated": false
+  },
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Remove direct stderr writes from executor",
+      "description": "As a CLI user running issue-flow in a terminal, I want the Execute phase to show iteration progress only inside the listr2 task tree, so that I see a clean, non-duplicated terminal UI.",
+      "acceptanceCriteria": [
+        "The process.stderr.write() call in executor.ts (lines 25-28) is removed",
+        "The JSDoc comment on lines 9-10 is updated to reflect that output is no longer forwarded to stderr",
+        "Running the Execute phase in a TTY terminal shows iteration output only within the listr2 tree — no text appears below it",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Route executor output through the output callback",
+      "description": "As a developer debugging with --verbose, I want Claude's raw output to be routed through the global output callback, so that I can still see it in verbose mode without breaking the single-writer pattern.",
+      "acceptanceCriteria": [
+        "executor.ts imports getOutputCallback from ./verbose.js",
+        "When an output callback is set (listr2 active), Claude's trimmed output is forwarded through it",
+        "When no callback is set (e.g., tests, standalone usage), the output is silently discarded (it is already returned via ClaudeResult)",
+        "Verbose mode (--verbose) shows Claude output within the listr2 renderer output area",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Verify non-TTY / CI output remains readable",
+      "description": "As a CI pipeline consumer, I want the Execute phase to produce readable sequential output under the listr2 simple renderer, so that CI logs remain useful after this fix.",
+      "acceptanceCriteria": [
+        "Running with TERM=dumb or piped stdout produces legible, non-duplicated output",
+        "No information is lost compared to the current simple-renderer behavior (the output callback still fires under the simple renderer)",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Verified: setOutputCallback fires in all renderer paths (default/verbose/simple). No direct stderr writes in executor.ts. CI/non-TTY output is legible and non-duplicated."
+    }
+  ]
+}
