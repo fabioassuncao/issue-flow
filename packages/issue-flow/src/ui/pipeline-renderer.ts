@@ -47,13 +47,16 @@ const PHASE_LABELS: Record<string, string> = {
  * - TTY + not verbose -> 'default' (animated spinners)
  * - TTY + verbose -> 'verbose' (sequential lines)
  * - Non-TTY / CI -> 'simple' (plain timestamped output)
+ *
+ * NO_COLOR is handled by listr2's own color support and the useColor() utility,
+ * not by switching renderers — a TTY with NO_COLOR still benefits from the
+ * default renderer's layout and spinners.
  */
 function selectRenderer(verbose: boolean): 'default' | 'verbose' | 'simple' {
   const isTTY = !!process.stdout.isTTY;
   const isCI = !!process.env.CI;
-  const noColor = process.env.NO_COLOR != null && process.env.NO_COLOR !== '';
 
-  if (!isTTY || isCI || noColor) {
+  if (!isTTY || isCI) {
     return 'simple';
   }
 
@@ -133,6 +136,7 @@ function buildExecutePhaseTask(
           await runner();
         } finally {
           setOutputCallback(undefined);
+          setStoryUpdateCallback(undefined);
           // Resolve any remaining pending stories (engine finished successfully)
           for (const [, { resolve }] of resolvers) {
             resolve();
@@ -148,22 +152,18 @@ function buildExecutePhaseTask(
       },
     };
 
-    try {
-      // Run engine + story subtasks concurrently:
-      // - Engine subtask runs the actual execution loop
-      // - Story subtasks resolve as the engine completes each story
-      return task.newListr([engineSubtask, ...subtaskDefs], {
-        concurrent: true,
-        exitOnError: false,
-        rendererOptions: {
-          timer: PRESET_TIMER,
-          collapseSkips: false,
-        },
-      });
-    } finally {
-      // Cleanup is handled in engineSubtask's finally block
-      setStoryUpdateCallback(undefined);
-    }
+    // Run engine + story subtasks concurrently:
+    // - Engine subtask runs the actual execution loop
+    // - Story subtasks resolve as the engine completes each story
+    // Cleanup of setStoryUpdateCallback is handled in engineSubtask's finally block
+    return task.newListr([engineSubtask, ...subtaskDefs], {
+      concurrent: true,
+      exitOnError: false,
+      rendererOptions: {
+        timer: PRESET_TIMER,
+        collapseSkips: false,
+      },
+    });
   };
 }
 
@@ -240,6 +240,10 @@ export async function runPipelineWithRenderer(
     await tasks.run();
   } catch {
     failedPhase = currentPhase ?? phases[startIndex];
+  } finally {
+    // Ensure global callbacks are always cleaned up, even on unexpected errors
+    setOutputCallback(undefined);
+    setStoryUpdateCallback(undefined);
   }
 
   const overallElapsedSeconds = Math.floor((Date.now() - overallStart) / 1000);

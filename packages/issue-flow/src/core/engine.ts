@@ -36,7 +36,10 @@ function sleep(seconds: number): Promise<void> {
 function emitLog(message: string): void {
   const cb = getOutputCallback();
   if (cb) {
-    cb(message);
+    // Skip empty lines in listr2 context — they don't render meaningfully
+    if (message) {
+      cb(message);
+    }
   } else {
     console.log(message);
   }

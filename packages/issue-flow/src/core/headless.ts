@@ -218,7 +218,7 @@ async function runHeadlessVerbose(
 
   if (proc.exitCode !== 0 && !resultText) {
     const stderr = proc.stderr?.toString() ?? '';
-    const isTimeout = proc.exitCode === 143 || proc.signalName === 'SIGTERM';
+    const isTimeout = proc.exitCode === 143 || (proc as unknown as { signalName?: string }).signalName === 'SIGTERM';
     const errorMsg = isTimeout
       ? `Headless invocation timed out after ${timeout}ms`
       : stderr || `claude exited with code ${proc.exitCode}`;
