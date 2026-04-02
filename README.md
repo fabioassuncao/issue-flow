@@ -62,14 +62,19 @@ npx issue-flow run 42
 
 # Resume from a specific phase
 npx issue-flow run 42 --from execute
+
+# Run on the current branch (no branch creation, no PR)
+npx issue-flow run 42 --no-branch
 ```
 
 Executes all phases in order: **init** -> **analyze** -> **prd** -> **plan** -> **execute** -> **review** -> **pr**. Automatically resumes from the last incomplete phase if pipeline state exists. On review failure, runs correction cycles (re-execute + re-review) up to `maxCorrectionCycles`.
 
-| Mode | Behavior |
-|------|----------|
-| `auto` | Full pipeline without stops (default) |
-| `manual` | Generates artifacts only, no execution |
+| Flag | Description |
+|------|-------------|
+| `--mode <mode>` | Execution mode: `auto` (default) or `manual` |
+| `--from <phase>` | Resume from a specific phase |
+| `--no-branch` | Run on the current branch without creating a new branch or PR |
+| `-v, --verbose` | Show Claude progress output in real time |
 
 ### `init` -- Check prerequisites
 
