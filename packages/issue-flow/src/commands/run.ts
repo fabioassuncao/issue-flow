@@ -1,6 +1,11 @@
 import { join } from 'node:path';
 import { execa } from 'execa';
-import { PIPELINE_PHASES, PipelineManager, type PipelinePhase } from '../core/pipeline.js';
+import {
+  PIPELINE_PHASES,
+  PIPELINE_PHASES_NO_BRANCH,
+  PipelineManager,
+  type PipelinePhase,
+} from '../core/pipeline.js';
 import { isoNow, loadTaskPlan, saveTaskPlan } from '../core/state-manager.js';
 import { isVerbose } from '../core/verbose.js';
 import { formatDuration, printError, printInfo, printSuccess, printWarning } from '../ui/logger.js';
@@ -13,7 +18,16 @@ import { runPr } from './pr.js';
 import { runPrd } from './prd.js';
 import { runReview } from './review.js';
 
-export async function runPipeline(issue: string, mode: string, from?: string): Promise<number> {
+/** Runnable phase lists (excluding 'init' which is handled separately). */
+const RUNNABLE_PHASES: PipelinePhase[] = ['analyze', 'prd', 'plan', 'execute', 'review', 'pr'];
+const RUNNABLE_PHASES_NO_BRANCH: PipelinePhase[] = ['analyze', 'prd', 'plan', 'execute', 'review'];
+
+export async function runPipeline(
+  issue: string,
+  mode: string,
+  from?: string,
+  noBranch?: boolean,
+): Promise<number> {
   const issueNumber = issue.replace(/^#/, '');
   const issueDir = join('issues', issueNumber);
   const tasksPath = join(issueDir, 'tasks.json');
@@ -28,11 +42,41 @@ export async function runPipeline(issue: string, mode: string, from?: string): P
     return 1;
   }
 
+  // Resolve noBranch mode: persisted value takes precedence on resume
+  let effectiveNoBranch = noBranch ?? false;
+  try {
+    const existingPlan = await loadTaskPlan(tasksPath);
+    const persistedNoBranch = existingPlan.noBranch ?? false;
+
+    // Only warn when the user explicitly passed a flag that conflicts with the persisted value
+    if (noBranch !== undefined && noBranch !== persistedNoBranch) {
+      if (persistedNoBranch) {
+        printWarning(
+          'This pipeline was started with --no-branch. Ignoring current flag; using persisted mode.',
+        );
+      } else {
+        printWarning(
+          'This pipeline was started without --no-branch. Ignoring current flag; using persisted mode.',
+        );
+      }
+    }
+
+    // Persisted mode wins on resume
+    effectiveNoBranch = persistedNoBranch;
+  } catch {
+    // No tasks.json yet — use the CLI flag as-is
+  }
+
+  const activePhases = effectiveNoBranch ? PIPELINE_PHASES_NO_BRANCH : PIPELINE_PHASES;
+  const phaseOrder = effectiveNoBranch ? RUNNABLE_PHASES_NO_BRANCH : RUNNABLE_PHASES;
+
   // Determine starting phase
   let startPhase: PipelinePhase = 'analyze';
   if (from) {
-    if (!PIPELINE_PHASES.includes(from as PipelinePhase)) {
-      printError(`Invalid phase: ${from}. Valid phases: ${PIPELINE_PHASES.join(', ')}`);
+    if (!(activePhases as readonly string[]).includes(from)) {
+      printError(
+        `Invalid phase: ${from}. Valid phases: ${activePhases.filter((p) => p !== 'init').join(', ')}`,
+      );
       return 1;
     }
     startPhase = from as PipelinePhase;
@@ -40,7 +84,7 @@ export async function runPipeline(issue: string, mode: string, from?: string): P
     // Try to auto-resume from pipeline state
     try {
       const plan = await loadTaskPlan(tasksPath);
-      const mgr = new PipelineManager(plan, tasksPath);
+      const mgr = new PipelineManager(plan, tasksPath, activePhases);
       const nextPhase = mgr.getNextPhase();
       if (nextPhase && nextPhase !== 'init') {
         startPhase = nextPhase;
@@ -55,7 +99,7 @@ export async function runPipeline(issue: string, mode: string, from?: string): P
   if (from) {
     try {
       const plan = await loadTaskPlan(tasksPath);
-      const mgr = new PipelineManager(plan, tasksPath);
+      const mgr = new PipelineManager(plan, tasksPath, activePhases);
       if (!mgr.canResume(startPhase)) {
         printError(`Cannot resume from ${startPhase}: prerequisite phases not complete`);
         return 1;
@@ -68,7 +112,6 @@ export async function runPipeline(issue: string, mode: string, from?: string): P
     }
   }
 
-  const phaseOrder: PipelinePhase[] = ['analyze', 'prd', 'plan', 'execute', 'review', 'pr'];
   const startIdx = phaseOrder.indexOf(startPhase);
 
   // Build phase runner functions that throw on failure
@@ -82,7 +125,19 @@ export async function runPipeline(issue: string, mode: string, from?: string): P
   const runners: Record<string, () => Promise<void>> = {
     analyze: makeRunner(() => runAnalyze(issueNumber), 'analyze'),
     prd: makeRunner(() => runPrd(issueNumber), 'prd'),
-    plan: makeRunner(() => runPlan(issueNumber), 'plan'),
+    plan: async () => {
+      await makeRunner(() => runPlan(issueNumber), 'plan')();
+      // Persist noBranch into the newly created tasks.json
+      if (effectiveNoBranch) {
+        try {
+          const plan = await loadTaskPlan(tasksPath);
+          plan.noBranch = true;
+          await saveTaskPlan(tasksPath, plan);
+        } catch {
+          /* non-critical: tasks.json may not exist yet if plan phase didn't create it */
+        }
+      }
+    },
     execute: makeRunner(() => runExecute(undefined, { issue: issueNumber }), 'execute'),
     review: async () => {
       // Read maxCorrectionCycles
