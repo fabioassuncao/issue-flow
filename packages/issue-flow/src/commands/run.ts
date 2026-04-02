@@ -74,9 +74,15 @@ export async function runPipeline(
   let startPhase: PipelinePhase = 'analyze';
   if (from) {
     if (!(activePhases as readonly string[]).includes(from)) {
-      printError(
-        `Invalid phase: ${from}. Valid phases: ${activePhases.filter((p) => p !== 'init').join(', ')}`,
-      );
+      const validPhases = activePhases.filter((p) => p !== 'init').join(', ');
+      // Check if the phase exists in the full set but is excluded by --no-branch
+      if (effectiveNoBranch && (PIPELINE_PHASES as readonly string[]).includes(from)) {
+        printError(
+          `The '${from}' phase is not available in --no-branch mode. Valid phases: ${validPhases}`,
+        );
+      } else {
+        printError(`Invalid phase: ${from}. Valid phases: ${validPhases}`);
+      }
       return 1;
     }
     startPhase = from as PipelinePhase;
