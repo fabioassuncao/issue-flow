@@ -154,7 +154,7 @@ function buildExecutePhaseTask(runner: () => Promise<void>, tasksPath: string, v
         timer: PRESET_TIMER,
         outputBar: verbose ? Infinity : false,
         persistentOutput: false,
-        bottomBar: verbose ? Infinity : 5,
+        bottomBar: verbose ? Infinity : 3,
       },
     };
 

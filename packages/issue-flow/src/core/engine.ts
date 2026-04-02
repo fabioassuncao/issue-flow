@@ -20,7 +20,7 @@ import {
   setLastError,
   trimErrorMessage,
 } from './state-manager.js';
-import { getOutputCallback, getStoryUpdateCallback } from './verbose.js';
+import { getOutputCallback, getStoryUpdateCallback, isVerbose } from './verbose.js';
 
 /**
  * Sleep for a given number of seconds.
@@ -195,7 +195,9 @@ export async function runEngine(config: EngineConfig, paths: ResolvedPaths): Pro
     // Re-read plan to get latest state
     plan = await loadTaskPlan(paths.prdFile);
 
-    printIterationHeader(i, config.maxIterations, plan.userStories);
+    if (isVerbose()) {
+      printIterationHeader(i, config.maxIterations, plan.userStories);
+    }
 
     // Apply placeholders to prompt
     const prompt = applyPlaceholders(promptTemplate, {
@@ -240,7 +242,9 @@ export async function runEngine(config: EngineConfig, paths: ResolvedPaths): Pro
           config.backoffMaxSeconds,
         );
 
-        emitLog('');
+        if (isVerbose()) {
+          emitLog('');
+        }
         printRetry(
           `Transient Claude failure on iteration ${i} (attempt ${retryCount}). Retrying in ${delaySeconds}s.`,
         );
@@ -305,7 +309,9 @@ export async function runEngine(config: EngineConfig, paths: ResolvedPaths): Pro
       );
     }
 
-    printSuccess(`Iteration ${i} complete. Continuing...`);
+    if (isVerbose()) {
+      printSuccess(`Iteration ${i} complete. Continuing...`);
+    }
     await sleep(2);
   }
 
