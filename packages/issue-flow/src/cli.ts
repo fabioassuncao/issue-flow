@@ -77,10 +77,11 @@ withGlobalOptions(
     .description('Execute the full pipeline: analyze → prd → plan → execute → review → pr')
     .argument('<issue>', 'Issue number')
     .option('--mode <mode>', 'Execution mode: auto | manual', 'auto')
-    .option('--from <phase>', 'Resume from a specific phase'),
-).action(async (issue: string, options: { mode: string; from?: string }) => {
+    .option('--from <phase>', 'Resume from a specific phase')
+    .option('--no-branch', 'Run pipeline on current branch without creating a new branch or PR'),
+).action(async (issue: string, options: { mode: string; from?: string; noBranch?: boolean }) => {
   const { runPipeline } = await import('./commands/run.js');
-  const code = await runPipeline(issue, options.mode, options.from);
+  const code = await runPipeline(issue, options.mode, options.from, options.noBranch);
   process.exit(code);
 });
 

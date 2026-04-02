@@ -17,6 +17,13 @@ export const PIPELINE_PHASES = [
 export type PipelinePhase = (typeof PIPELINE_PHASES)[number];
 
 /**
+ * Pipeline phases excluding the 'pr' phase, for --no-branch mode.
+ */
+export const PIPELINE_PHASES_NO_BRANCH = PIPELINE_PHASES.filter(
+  (p): p is Exclude<PipelinePhase, 'pr'> => p !== 'pr',
+);
+
+/**
  * Map pipeline phases to their corresponding PipelineState field.
  * 'init' has no persisted state — it's a runtime-only check.
  */
@@ -33,10 +40,12 @@ const PHASE_TO_FIELD: Record<PipelinePhase, keyof PipelineState | null> = {
 export class PipelineManager {
   private tasksJsonPath: string;
   private plan: TaskPlan;
+  private activePhases: readonly PipelinePhase[];
 
-  constructor(plan: TaskPlan, tasksJsonPath: string) {
+  constructor(plan: TaskPlan, tasksJsonPath: string, activePhases?: readonly PipelinePhase[]) {
     this.plan = plan;
     this.tasksJsonPath = tasksJsonPath;
+    this.activePhases = activePhases ?? PIPELINE_PHASES;
   }
 
   /**
@@ -60,7 +69,7 @@ export class PipelineManager {
    * Returns null if all phases are complete.
    */
   getNextPhase(): PipelinePhase | null {
-    for (const phase of PIPELINE_PHASES) {
+    for (const phase of this.activePhases) {
       if (!this.isPhaseComplete(phase)) {
         return phase;
       }
@@ -80,12 +89,12 @@ export class PipelineManager {
    * All prerequisite phases must be complete.
    */
   canResume(fromPhase: PipelinePhase): boolean {
-    const idx = PIPELINE_PHASES.indexOf(fromPhase);
+    const idx = this.activePhases.indexOf(fromPhase);
     if (idx < 0) return false;
 
-    // All phases before fromPhase must be complete
+    // All active phases before fromPhase must be complete
     for (let i = 0; i < idx; i++) {
-      if (!this.isPhaseComplete(PIPELINE_PHASES[i])) {
+      if (!this.isPhaseComplete(this.activePhases[i])) {
         return false;
       }
     }

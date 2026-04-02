@@ -34,6 +34,7 @@ export const taskPlanSchema = z.object({
   issueNumber: z.number().int().positive(),
   issueUrl: z.string(),
   branchName: z.string(),
+  noBranch: z.boolean().optional().default(false),
   description: z.string(),
   issueStatus: z.enum(['pending', 'in_progress', 'completed']),
   completedAt: z.string().nullable(),

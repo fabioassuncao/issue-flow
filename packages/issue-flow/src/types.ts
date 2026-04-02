@@ -33,6 +33,7 @@ export interface TaskPlan {
   issueNumber: number;
   issueUrl: string;
   branchName: string;
+  noBranch?: boolean;
   description: string;
   issueStatus: 'pending' | 'in_progress' | 'completed';
   completedAt: string | null;
