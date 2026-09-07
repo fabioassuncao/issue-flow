@@ -58,11 +58,14 @@ are equal when the text is equal, regardless of line-ending formatting.
 | Both, different `contentHash` | reports the divergence (title, size, `updatedAt`, hash of each side) and applies `conflictPolicy` |
 | Neither | fails with exit code `1`, listing what each origin answered |
 
-With `conflictPolicy: "ask"` **and** an interactive terminal, the versions are
-listed and you choose: `[1] Local  [2] GitHub  [3] Cancel` (cancelling exits
-non-zero). In CI or any non-TTY environment the prompt is never shown — the
-preferred provider is used and a warning is printed, so an automated run can
-never hang. `prefer-local` and `prefer-github` never prompt.
+With `conflictPolicy: "ask"` **and** an interactive terminal, the versions and
+an explicit **Cancel** option appear in an arrow-key menu. The configured
+preferred provider is selected initially; use ↑/↓ to move and Enter to submit.
+Selecting **Cancel**, pressing Esc/Ctrl+C, or closing the input exits non-zero.
+Numeric line input such as `1`, `2`, or `3` is not supported. In CI or any
+non-TTY environment the prompt is never shown — the preferred provider is used
+and a warning is printed, so an automated run can never hang. `prefer-local`
+and `prefer-github` never prompt.
 
 ## Local issue format
 
@@ -187,11 +190,14 @@ Issue #50 is part of a larger structure:
     2. #51 Multiple issues as input (after #50)
     3. #52 Sequential multi-issue execution (after #51, high)
     4. #53 One consolidated Pull Request (after #52)
-Which scope should run? [1] Only the issues informed (1)  [2] The whole hierarchy (4)  [3] Cancel:
 ```
 
-Answering `2` (or pressing Enter) runs the whole thing; `1` trims it to what you
-typed; `3` cancels without executing anything.
+The scope appears as an arrow-key menu with **Only the issues informed**, **The
+whole hierarchy**, and **Cancel**. For a normal queue, **The whole hierarchy**
+is selected initially; for a container, the initial selection is the cascade of
+its children. Use ↑/↓ to move and Enter to submit. Selecting **Cancel** or using
+Esc/Ctrl+C exits before any phase starts. Numeric line input such as `1`, `2`,
+or `3` is not supported.
 
 **Outside a TTY** (CI, a pipe) the answer must come from a flag: `--yes` runs the
 whole hierarchy, `--cascade` runs the children of a container, `--only` runs just
@@ -269,3 +275,69 @@ resolution applies. Dual/remote delivery keeps remote discovery. Direct provider
 APIs retain their legacy allocation behavior unless `localOnly` is requested.
 
 Issue closure is an explicit execution choice; see [command contract](commands.md#explicit-issue-closure).
+
+## Pull Requests, CI and review comments
+
+Issues are one side of GitHub; Pull Requests are the other. Everything the CLI
+**reads** from GitHub about a Pull Request lives in one place —
+`src/issues/github/` — and nothing else in the tree shells out to `gh pr list`,
+`gh pr view` or `gh run view`. Pull Request **creation** is not part of it: that
+belongs to the `pr` phase, which builds the deterministic `Closes` / `Refs` body
+([command contract](commands.md)).
+
+What it reads:
+
+| Question | Answer |
+|---|---|
+| Which Pull Requests target this branch? | `number`, `url`, `title` — what the session snapshot reports |
+| Is a Pull Request open, closed, merged, draft? | Refreshed per Pull Request, `isDraft` included |
+| Did CI pass? | The `statusCheckRollup`, collapsed to one verdict per check |
+| Why did it fail? | The failed steps of the GitHub Actions run |
+| What did reviewers say inline? | Review comments, anchored to file and line |
+| And in the sibling repositories? | The same, for every repository under [`github.linkedRepos`](configuration.md#github) |
+
+Three rules make repeated reading affordable and honest:
+
+- **A failed query is never an empty answer.** A list that could not be fetched
+  is reported as a failure, not as "no Pull Request" — the difference between a
+  view that is temporarily incomplete and a conclusion that is wrong.
+- **Conditional requests.** Review comments are re-read with `If-None-Match`; a
+  `304 Not Modified` costs no GitHub rate limit. A Pull Request whose
+  `updatedAt` has not moved is not re-read at all.
+- **Nothing is polled while nobody is watching.** The periodic refresh is
+  activity-gated: with the view closed it makes no `gh` call. A maintenance
+  sweep that has to run regardless simply does not pass the gate.
+
+A cancelled CI run is treated as *superseded*, not as a failure, and a re-run
+wins over the run it replaced — otherwise a Pull Request whose workflow was
+re-triggered would report as permanently failed.
+
+## The `inline` origin — a demand with no Issue
+
+A third origin ships alongside `github` and `local`: **`inline`**, which holds
+the demands typed straight into
+[`issue-flow run --prompt`](commands.md#a-demand-with-no-issue).
+
+```bash
+issue-flow run --prompt "Fix the flaky cache test; it only fails on CI"
+```
+
+It behaves like any other origin — the same `Issue` shape, the same phases, the
+same acceptance contract — with three properties of its own:
+
+- **The identifier is derived from the prompt**: `inline-<12 hex>` of the
+  text's sha-256. The same demand is the same Issue, so re-running a prompt
+  resumes it instead of starting a second history.
+- **It claims its own identifiers.** No other origin is ever queried for an
+  `inline-…` id, so a `resume` of an inline demand costs no GitHub round-trip
+  and reports no failure that was never one. This is what
+  `IssueProvider.claims()` is for; an origin whose identifiers could collide
+  with another's must not implement it, or divergence detection would be
+  silenced.
+- **It is per project and lives in SQLite** (`inline_issues`, migration 18) —
+  never in the repository, so a one-line demand leaves no directory behind. It
+  needs the SQLite store; on the legacy JSON store the origin simply reports
+  itself unavailable and the other two keep working.
+
+`--prompt` and an issue number are mutually exclusive: passing both is a usage
+error rather than a guess.

@@ -41,8 +41,22 @@ takes when verbose is off.
 | `⚠` / `[WARN]` | warning |
 | `·` / `-` | information / metadata separator |
 
-`NO_COLOR` or a non-TTY falls back to the ASCII column. Color and unicode
-are the same detection (`useColor` / `useUnicode`).
+The status renderer keeps its existing ASCII fallback: `NO_COLOR` or a non-TTY
+selects that column through `useColor` / `useUnicode`. Clack prompts are a
+separate contract: `NO_COLOR` removes SGR styling but does not disable Unicode
+glyphs when the terminal supports them. Do not alter `TERM` to couple those
+decisions.
+
+## Interactive prompts
+
+`prompts.ts` is the shared Clack adapter and the only interactivity predicate.
+Pass stdin, stdout and CI state into `isInteractive`; a prompt requires TTYs on
+both ends and no active CI value. Prompt cancellation (including EOF, Esc,
+Ctrl+C and abort) is data, never a default answer.
+
+The `listr2` renderer remains the terminal's single writer while its rendering
+region is active. Stop or leave that region before opening a Clack prompt; never
+print a prompt alongside a running task renderer.
 
 ## Activity is always published
 
@@ -63,3 +77,9 @@ stays on `session.json` and the journal.
 Progress goes to `stdout`. `issue-flow run 42 > run.log 2>/dev/null` must
 produce a complete, ordered log. Diagnostics that are not progress
 (publisher warnings, shutdown) may stay on `stderr`.
+
+`printSubsystem()` is the foreground service extension of this same writer,
+not a second logger. It adds the timestamp/subsystem prefix and calls
+`redactSecrets()` before stdout. Long-running `serve` output is lifecycle only
+(`run:open`, status/phase transition, `run:close`), never snapshot or
+conversation firehose; detached `--web` continues with ignored stdio.

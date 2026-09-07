@@ -37,10 +37,9 @@ export const RUNNABLE_QUEUE_PR_PHASES_WITH_REVIEW: PipelinePhase[] = ['pr', 'pr-
 export type PrReviewOutcome = RunSummaryPrReview;
 
 /** What one failing Issue does to the rest of the queue. */
-export type QueueFailureMode =
-  | /** End the run where it failed. The behaviour that has always been. */ 'stop'
-  | /** Set it aside, run the independent work, come back to it. */ 'skip'
-  | /** Set it aside for a human, and never come back to it. */ 'block';
+export const QUEUE_FAILURE_MODES = ['stop', 'skip', 'block'] as const;
+
+export type QueueFailureMode = (typeof QUEUE_FAILURE_MODES)[number];
 
 /**
  * Everything a queue hands to the run of one of its issues.
@@ -83,6 +82,23 @@ export interface IssueRunResult {
 /** Options `run` accepts on top of the phase selection ones. */
 export interface RunPipelineOptions {
   closeIssue?: boolean;
+  /**
+   * `--prompt <text>`: the demand itself, with no Issue behind it (§17).
+   *
+   * The pipeline never sees it as a prompt. It is minted into an Issue of the
+   * `inline` origin before anything starts, so every phase, the acceptance
+   * contract and the independent reviewer run exactly as they always did.
+   */
+  prompt?: string;
+  /**
+   * `--auto-close` / `--keep-open`: whether the run closes the agent sessions
+   * it left open once it is over. `undefined` falls back to `run.autoClose`
+   * in `.issue-flow.json`, whose default is off.
+   *
+   * A run a person took over (`human_hold`) never closes anything, whatever
+   * this says — §32's takeover is the disarm.
+   */
+  autoClose?: boolean;
   /** `--yes`: accept the discovered hierarchy without confirmation. */
   yes?: boolean;
   /** `--only`: run just the issues informed, skipping discovery. */
